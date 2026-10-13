@@ -1,7 +1,53 @@
 @import "tailwindcss";
+@import "katex/dist/katex.min.css";
 
 @theme {
   --font-sans: "IBM Plex Sans", "Segoe UI", sans-serif;
   --font-display: "Fraunces", Georgia, serif;
+}
+
+:root {
+  --paper: #f4f1e9;
+  --ink: #172321;
+  --muted: #53635f;
+  --navy: #0b302f;
+  --navy-light: #164846;
+  --teal: #176d66;
+  --signal: #e4c65b;
+  --line: #d7d4ca;
+  --line-strong: #aaa99f;
+  font-family: var(--font-sans);
+  color: var(--ink);
+  background: var(--paper);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; min-height: 100vh; }
+button, input, textarea, select { font: inherit; }
+.font-display { font-family: var(--font-display); }
+
+.form-input {
+  display: block;
+  width: 100%;
+  min-height: 3rem;
+  margin-top: 0.5rem;
+  border: 1px solid var(--line-strong);
+  background: #fff;
+  padding: 0.75rem 0.875rem;
+  color: var(--ink);
+  outline: none;
+}
+
+.form-input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgb(23 109 102 / 18%); }
+
+@media (prefers-reduced-motion: no-preference) {
+  main > section { animation: reveal 260ms ease-out both; }
+}
+
+@keyframes reveal {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
