@@ -1,0 +1,3 @@
+Database schema changes are managed only through Alembic migrations. Production
+startup runs `alembic upgrade head`; the application never calls `create_all`.
+
