@@ -1,0 +1,62 @@
+[project]
+name = "competitor-intelligence-api"
+version = "0.1.0"
+description = "Source-backed company and competitor research API"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+  "alembic>=1.14,<2",
+  "beautifulsoup4>=4.12,<5",
+  "email-validator>=2.2,<3",
+  "fastapi>=0.115,<1",
+  "httpx>=0.28,<1",
+  "langchain-google-genai>=2.0,<3",
+  "langgraph>=0.3,<1",
+  "protobuf>=5,<7",
+  "psycopg[binary]>=3.2,<4",
+  "pwdlib[argon2]>=0.2,<1",
+  "pydantic>=2.10,<3",
+  "pydantic-settings>=2.7,<3",
+  "pyjwt>=2.10,<3",
+  "python-multipart>=0.0.20,<1",
+  "rank-bm25>=0.2,<1",
+  "sentry-sdk[fastapi]>=2.20,<3",
+  "sqlmodel>=0.0.22,<1",
+  "tenacity>=9,<10",
+  "uvicorn[standard]>=0.34,<1",
+]
+
+[dependency-groups]
+dev = [
+  "grpcio-tools>=1.68,<2",
+  "mypy>=1.14,<2",
+  "pytest>=8.3,<9",
+  "pytest-cov>=6,<7",
+  "ruff>=0.9,<1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+markers = ["integration: integrated API and workflow behavior"]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+exclude = ["app/alembic/versions", "app/proto/competitor_events_pb2.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "C4"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+exclude = ["app/alembic", "app/proto/competitor_events_pb2.py"]
+

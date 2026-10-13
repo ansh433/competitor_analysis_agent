@@ -1,0 +1,43 @@
+{
+  "name": "competitor-intelligence-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc -p tsconfig.build.json && vite build",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "generate-client": "openapi-ts",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@radix-ui/react-dialog": "^1.1.6",
+    "@tanstack/react-query": "^5.66.0",
+    "@tanstack/react-router": "^1.97.0",
+    "@tailwindcss/vite": "^4.0.0",
+    "katex": "^0.16.21",
+    "lucide-react": "^0.475.0",
+    "protobufjs": "^7.4.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-markdown": "^10.0.0",
+    "rehype-katex": "^7.0.1",
+    "remark-gfm": "^4.0.0",
+    "remark-math": "^6.0.0",
+    "tailwindcss": "^4.0.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@hey-api/openapi-ts": "^0.66.0",
+    "@playwright/test": "^1.50.0",
+    "@tanstack/router-plugin": "^1.97.0",
+    "@types/node": "^22.13.0",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
+    "@vitejs/plugin-react-swc": "^3.8.0",
+    "typescript": "^5.7.3",
+    "vite": "^6.1.0"
+  }
+}
+
