@@ -82,3 +82,35 @@ def test_conversations_are_tenant_isolated(
         f"/api/v1/conversations/{conversation_id}", headers=other_headers
     ).status_code == 404
 
+
+def test_conversation_branch_copies_history_through_selected_message(
+    client: TestClient,
+    auth_headers: dict[str, str],
+) -> None:
+    conversation = client.post(
+        "/api/v1/conversations",
+        headers=auth_headers,
+        json={"title": "Original hypothesis"},
+    ).json()
+    first = client.post(
+        f"/api/v1/conversations/{conversation['id']}/messages",
+        headers=auth_headers,
+        json={"content": "First hypothesis"},
+    ).json()
+    client.post(
+        f"/api/v1/conversations/{conversation['id']}/messages",
+        headers=auth_headers,
+        json={"content": "Later hypothesis"},
+    )
+
+    branch = client.post(
+        f"/api/v1/conversations/{conversation['id']}/branches",
+        headers=auth_headers,
+        json={"origin_message_id": first["id"], "title": "Alternative hypothesis"},
+    )
+
+    assert branch.status_code == 201
+    assert branch.json()["parent_conversation_id"] == conversation["id"]
+    assert branch.json()["branch_origin_message_id"] == first["id"]
+    assert [message["content"] for message in branch.json()["messages"]] == ["First hypothesis"]
+

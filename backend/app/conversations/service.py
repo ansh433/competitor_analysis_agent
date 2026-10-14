@@ -95,3 +95,43 @@ def delete_conversation(session: Session, conversation: Conversation) -> None:
     session.delete(conversation)
     session.commit()
 
+
+def branch_conversation(
+    session: Session,
+    source: Conversation,
+    origin_message_id: UUID | None,
+    title: str | None,
+) -> Conversation:
+    messages = list_messages(session, source.id)
+    if origin_message_id:
+        origin_index = next(
+            (index for index, message in enumerate(messages) if message.id == origin_message_id),
+            None,
+        )
+        if origin_index is None:
+            raise ResourceNotFoundError("Branch origin message not found")
+        messages = messages[: origin_index + 1]
+
+    branch = Conversation(
+        user_id=source.user_id,
+        title=(title or f"{source.title} — branch").strip(),
+        summary=source.summary,
+        summary_message_count=min(source.summary_message_count, len(messages)),
+        parent_conversation_id=source.id,
+        branch_origin_message_id=origin_message_id or (messages[-1].id if messages else None),
+    )
+    session.add(branch)
+    session.flush()
+    for message in messages:
+        session.add(
+            ChatMessage(
+                conversation_id=branch.id,
+                sender=message.sender,
+                content=message.content,
+                structured_metadata={**message.structured_metadata, "branched_from": str(message.id)},
+            )
+        )
+    session.commit()
+    session.refresh(branch)
+    return branch
+

@@ -18,6 +18,11 @@ class CreateMessageRequest(BaseModel):
     content: str = Field(min_length=1, max_length=50_000)
 
 
+class BranchConversationRequest(BaseModel):
+    origin_message_id: UUID | None = None
+    title: str | None = Field(default=None, min_length=1, max_length=255)
+
+
 class ConversationResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

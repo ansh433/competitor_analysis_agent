@@ -6,6 +6,7 @@ from app.api.deps import CurrentUser, SessionDependency
 from app.conversations.models import MessageSender
 from app.conversations.schemas import (
     ChatMessageResponse,
+    BranchConversationRequest,
     ConversationDetailResponse,
     ConversationListResponse,
     ConversationResponse,
@@ -15,6 +16,7 @@ from app.conversations.schemas import (
 )
 from app.conversations.service import (
     add_message,
+    branch_conversation,
     create_conversation,
     delete_conversation,
     get_owned_conversation,
@@ -105,4 +107,31 @@ def delete_conversation_route(
     conversation = get_owned_conversation(session, current_user.id, conversation_id)
     delete_conversation(session, conversation)
     return Response(status_code=204)
+
+
+@router.post(
+    "/{conversation_id}/branches",
+    response_model=ConversationDetailResponse,
+    status_code=201,
+)
+def branch_conversation_route(
+    conversation_id: UUID,
+    request: BranchConversationRequest,
+    current_user: CurrentUser,
+    session: SessionDependency,
+) -> ConversationDetailResponse:
+    source = get_owned_conversation(session, current_user.id, conversation_id)
+    branch = branch_conversation(
+        session,
+        source,
+        request.origin_message_id,
+        request.title,
+    )
+    return ConversationDetailResponse(
+        **ConversationResponse.model_validate(branch).model_dump(),
+        messages=[
+            ChatMessageResponse.model_validate(message)
+            for message in list_messages(session, branch.id)
+        ],
+    )
 
