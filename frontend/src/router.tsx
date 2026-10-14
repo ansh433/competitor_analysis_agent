@@ -10,6 +10,7 @@ import type { AuthContextValue } from "./auth/auth-context";
 import { AppShell } from "./components/app-shell";
 import { PagePlaceholder } from "./components/page-placeholder";
 import { AuthPage } from "./pages/auth-page";
+import { ResearchStartPage } from "./pages/research-start-page";
 
 interface RouterContext {
   auth: AuthContextValue;
@@ -57,7 +58,6 @@ const homeRoute = createRoute({
 
 const pages = [
   ["/dashboard", "Decision desk", "Resume active research, review evidence coverage, and monitor open questions."],
-  ["/research", "Start a research run", "Select a workspace and define the company question you need answered."],
   ["/workspaces", "Research workspaces", "Organize companies, comparisons, conversations, and saved evidence by mandate."],
   ["/workspaces/$workspaceId", "Workspace", "Review the companies and research artifacts held in this workspace."],
   ["/companies/$companyId", "Company dossier", "Inspect the canonical profile, timeline, competitors, and evidence ledger."],
@@ -75,13 +75,19 @@ const protectedPages = pages.map(([path, title, description]) =>
   }),
 );
 
+const researchRoute = createRoute({
+  getParentRoute: () => protectedRoute,
+  path: "/research",
+  component: ResearchStartPage,
+});
+
 const routeTree = rootRoute.addChildren([
   homeRoute,
   loginRoute,
   signupRoute,
   recoveryRoute,
   resetRoute,
-  protectedRoute.addChildren(protectedPages),
+  protectedRoute.addChildren([researchRoute, ...protectedPages]),
 ]);
 
 export const router = createRouter({ routeTree, context: { auth: undefined as never } });
