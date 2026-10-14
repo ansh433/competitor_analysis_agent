@@ -77,3 +77,21 @@ def add_message(
     session.refresh(message)
     return message
 
+
+def rename_conversation(
+    session: Session,
+    conversation: Conversation,
+    title: str,
+) -> Conversation:
+    conversation.title = title.strip()
+    conversation.updated_at = utc_now()
+    session.add(conversation)
+    session.commit()
+    session.refresh(conversation)
+    return conversation
+
+
+def delete_conversation(session: Session, conversation: Conversation) -> None:
+    session.delete(conversation)
+    session.commit()
+
