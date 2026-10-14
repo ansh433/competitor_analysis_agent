@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Query, Response
+from fastapi.responses import StreamingResponse
 
 from app.api.deps import CurrentUser, SessionDependency
 from app.conversations.models import MessageSender
@@ -24,8 +25,16 @@ from app.conversations.service import (
     list_messages,
     rename_conversation,
 )
+from app.streaming.schemas import StreamEventLogListResponse, StreamEventLogResponse
+from app.streaming.service import list_stream_event_logs, stream_initial_response
 
 router = APIRouter(prefix="/conversations", tags=["conversations"])
+
+SSE_HEADERS = {
+    "Cache-Control": "no-cache, no-transform",
+    "Connection": "keep-alive",
+    "X-Accel-Buffering": "no",
+}
 
 
 @router.post("", response_model=ConversationResponse, status_code=201)
@@ -133,5 +142,39 @@ def branch_conversation_route(
             ChatMessageResponse.model_validate(message)
             for message in list_messages(session, branch.id)
         ],
+    )
+
+
+@router.post("/{conversation_id}/responses", response_model=None, status_code=200)
+def stream_conversation_response_route(
+    conversation_id: UUID,
+    request: CreateMessageRequest,
+    current_user: CurrentUser,
+    session: SessionDependency,
+) -> StreamingResponse:
+    conversation = get_owned_conversation(session, current_user.id, conversation_id)
+    return StreamingResponse(
+        stream_initial_response(session, conversation, request.content),
+        media_type="text/event-stream",
+        headers=SSE_HEADERS,
+    )
+
+
+@router.get(
+    "/{conversation_id}/events",
+    response_model=StreamEventLogListResponse,
+    status_code=200,
+)
+def list_conversation_events_route(
+    conversation_id: UUID,
+    current_user: CurrentUser,
+    session: SessionDependency,
+) -> StreamEventLogListResponse:
+    conversation = get_owned_conversation(session, current_user.id, conversation_id)
+    return StreamEventLogListResponse(
+        events=[
+            StreamEventLogResponse.model_validate(event)
+            for event in list_stream_event_logs(session, conversation.id)
+        ]
     )
 
