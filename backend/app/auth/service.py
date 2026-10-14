@@ -13,6 +13,7 @@ from app.core.security import (
     hash_password,
     verify_password,
 )
+from app.quotas.service import ensure_user_quotas
 from app.users.models import User
 
 DUMMY_PASSWORD_HASH = hash_password("not-a-user-password-for-timing-equalization")
@@ -28,6 +29,8 @@ def register_user(session: Session, registration: RegisterUserRequest) -> User:
         hashed_password=hash_password(registration.password),
     )
     session.add(user)
+    session.flush()
+    ensure_user_quotas(session, user.id)
     session.commit()
     session.refresh(user)
     return user

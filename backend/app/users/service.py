@@ -4,6 +4,7 @@ from sqlmodel import Session, func, select
 
 from app.core.errors import AuthenticationError, ResourceConflictError, ResourceNotFoundError
 from app.core.security import hash_password, verify_password
+from app.quotas.service import ensure_user_quotas
 from app.users.models import User, utc_now
 from app.users.schemas import (
     AdminCreateUserRequest,
@@ -23,6 +24,8 @@ def update_profile(session: Session, user: User, request: UpdateProfileRequest) 
         user.full_name = request.full_name
     user.updated_at = utc_now()
     session.add(user)
+    session.flush()
+    ensure_user_quotas(session, user.id)
     session.commit()
     session.refresh(user)
     return user

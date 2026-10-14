@@ -29,6 +29,11 @@ class Settings(BaseSettings):
     tavily_api_key: SecretStr | None = None
     gemini_model: str = "gemini-2.0-flash"
     upgraded_gemini_model: str = "gemini-2.5-pro"
+    standard_research_runs_per_day: int = 5
+    upgraded_research_runs_per_day: int = 2
+    maximum_sources_per_run: int = 30
+    maximum_gap_research_loops: int = 2
+    superuser_quota_bypass: bool = True
     request_timeout_seconds: float = 15.0
     maximum_fetched_bytes: int = 1_500_000
     smtp_host: str | None = None
