@@ -1,11 +1,53 @@
 import { AlertTriangle, ArrowRight, Gauge } from "lucide-react";
+import { FormEvent, useState } from "react";
 
+import { apiRequest } from "../api/client";
+import { ResearchProgress, type ResearchStageView, type ToolExecutionView } from "../components/research-progress";
 import { useQuotaStatus } from "../quotas/use-quota";
+import type { ResearchEventPayload } from "../proto/competitor-events";
+import { postResearchStream } from "../streaming/research-stream";
+
+interface ResearchViewState {
+  stages: ResearchStageView[];
+  tools: ToolExecutionView[];
+  sources: Array<{ sourceId: string; title: string; publisher: string }>;
+  streamedText: string;
+  isFinished: boolean;
+  error: string | null;
+}
+
+const initialResearchState: ResearchViewState = {
+  stages: [], tools: [], sources: [], streamedText: "", isFinished: false, error: null,
+};
 
 export function ResearchStartPage(): React.JSX.Element {
   const quota = useQuotaStatus();
+  const [research, setResearch] = useState<ResearchViewState>(initialResearchState);
+  const [isRunning, setIsRunning] = useState(false);
   const standard = quota.data?.tiers.find((tier) => tier.tier === "standard");
   const isDisabled = !quota.isLoading && !quota.data?.can_start_research;
+
+  async function handleStartResearch(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault();
+    setResearch(initialResearchState);
+    setIsRunning(true);
+    const data = new FormData(event.currentTarget);
+    const company = String(data.get("company") ?? "");
+    const objective = String(data.get("objective") ?? "");
+    try {
+      const conversation = await apiRequest<{ id: string }>("/conversations", {
+        method: "POST",
+        body: JSON.stringify({ title: `${company} research` }),
+      });
+      for await (const event of postResearchStream(`/conversations/${conversation.id}/responses`, { content: `${company}: ${objective}` })) {
+        setResearch((current) => applyPayload(current, event.payload));
+      }
+    } catch (error) {
+      setResearch((current) => ({ ...current, error: error instanceof Error ? error.message : "Research failed" }));
+    } finally {
+      setIsRunning(false);
+    }
+  }
 
   return (
     <section className="mx-auto max-w-6xl">
@@ -27,10 +69,12 @@ export function ResearchStartPage(): React.JSX.Element {
             </div>
           ) : null}
 
-          <form className="mt-10 space-y-6 border border-[var(--line)] bg-white p-6 md:p-8">
+          <form onSubmit={handleStartResearch} className="mt-10 space-y-6 border border-[var(--line)] bg-white p-6 md:p-8">
             <label className="block text-sm font-semibold">
               Company name or website
               <input
+                name="company"
+                required
                 className="form-input"
                 placeholder="Example: Linear or linear.app"
                 disabled={isDisabled}
@@ -39,17 +83,19 @@ export function ResearchStartPage(): React.JSX.Element {
             <label className="block text-sm font-semibold">
               Research objective
               <textarea
+                name="objective"
+                required
                 className="form-input min-h-36 resize-y"
                 placeholder="Assess product differentiation, pricing, and direct competitors for a market-entry decision."
                 disabled={isDisabled}
               />
             </label>
             <button
-              type="button"
-              disabled={isDisabled || quota.isLoading}
+              type="submit"
+              disabled={isDisabled || quota.isLoading || isRunning}
               className="inline-flex min-h-12 items-center gap-2 bg-[var(--navy)] px-5 font-semibold text-white hover:bg-[var(--navy-light)] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Begin research <ArrowRight aria-hidden="true" size={18} />
+              {isRunning ? "Researching…" : "Begin research"} <ArrowRight aria-hidden="true" size={18} />
             </button>
           </form>
         </div>
@@ -67,7 +113,32 @@ export function ResearchStartPage(): React.JSX.Element {
           </dl>
         </aside>
       </div>
+      {research.error ? <p role="alert" className="mt-6 bg-red-50 p-4 text-red-800">{research.error}</p> : null}
+      {isRunning || research.stages.length > 0 ? <ResearchProgress {...research} /> : null}
     </section>
   );
+}
+
+function applyPayload(state: ResearchViewState, payload: ResearchEventPayload): ResearchViewState {
+  if (payload.kind === "graph_stage_started") {
+    return { ...state, stages: [...state.stages, { name: payload.stageName, detail: payload.detail, status: "active" }] };
+  }
+  if (payload.kind === "graph_stage_ended") {
+    return { ...state, stages: state.stages.map((stage) => stage.name === payload.stageName ? { ...stage, detail: payload.detail, status: "complete" } : stage) };
+  }
+  if (payload.kind === "tool_started") {
+    return { ...state, tools: [...state.tools, { executionId: payload.executionId, name: payload.toolName, status: "active" }] };
+  }
+  if (payload.kind === "tool_ended") {
+    return { ...state, tools: state.tools.map((tool) => tool.executionId === payload.executionId ? { ...tool, status: payload.success ? "complete" : "failed", executionTimeMs: payload.executionTimeMs } : tool) };
+  }
+  if (payload.kind === "source_discovered") {
+    return { ...state, sources: [...state.sources, { sourceId: payload.sourceId, title: payload.title, publisher: payload.publisher }] };
+  }
+  if (payload.kind === "text_chunk") return { ...state, streamedText: state.streamedText + payload.text };
+  if (payload.kind === "final_report_artifact") return { ...state, streamedText: payload.reportMarkdown };
+  if (payload.kind === "error") return { ...state, error: payload.message };
+  if (payload.kind === "finished") return { ...state, isFinished: true };
+  return state;
 }
 

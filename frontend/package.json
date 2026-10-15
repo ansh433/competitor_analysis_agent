@@ -9,6 +9,7 @@
     "lint": "biome check .",
     "format": "biome format --write .",
     "generate-client": "openapi-ts",
+    "generate:proto": "node scripts/generate-proto.mjs",
     "test:e2e": "playwright test"
   },
   "dependencies": {
