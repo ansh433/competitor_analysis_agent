@@ -10,7 +10,11 @@ import type { AuthContextValue } from "./auth/auth-context";
 import { AppShell } from "./components/app-shell";
 import { PagePlaceholder } from "./components/page-placeholder";
 import { AuthPage } from "./pages/auth-page";
+import { CompanyDetailPage } from "./pages/company-detail-page";
 import { ResearchStartPage } from "./pages/research-start-page";
+import { TrackedCompaniesPage } from "./pages/tracked-companies-page";
+import { WorkspaceDetailPage } from "./pages/workspace-detail-page";
+import { WorkspacesPage } from "./pages/workspaces-page";
 
 interface RouterContext {
   auth: AuthContextValue;
@@ -58,11 +62,7 @@ const homeRoute = createRoute({
 
 const pages = [
   ["/dashboard", "Decision desk", "Resume active research, review evidence coverage, and monitor open questions."],
-  ["/workspaces", "Research workspaces", "Organize companies, comparisons, conversations, and saved evidence by mandate."],
-  ["/workspaces/$workspaceId", "Workspace", "Review the companies and research artifacts held in this workspace."],
-  ["/companies/$companyId", "Company dossier", "Inspect the canonical profile, timeline, competitors, and evidence ledger."],
   ["/comparisons/$comparisonId", "Company comparison", "Compare normalized capabilities, positioning, pricing, and evidence confidence."],
-  ["/tracked-companies", "Tracked companies", "Keep priority companies ready for recurring research and monitoring."],
   ["/settings", "Account settings", "Manage your profile, password, model access, and research preferences."],
   ["/admin", "Administration", "Manage users, account access, and research quotas."],
 ] as const;
@@ -80,6 +80,10 @@ const researchRoute = createRoute({
   path: "/research",
   component: ResearchStartPage,
 });
+const workspacesRoute = createRoute({ getParentRoute: () => protectedRoute, path: "/workspaces", component: WorkspacesPage });
+const workspaceDetailRoute = createRoute({ getParentRoute: () => protectedRoute, path: "/workspaces/$workspaceId", component: WorkspaceDetailPage });
+const companyDetailRoute = createRoute({ getParentRoute: () => protectedRoute, path: "/companies/$companyId", component: CompanyDetailPage });
+const trackedCompaniesRoute = createRoute({ getParentRoute: () => protectedRoute, path: "/tracked-companies", component: TrackedCompaniesPage });
 
 const routeTree = rootRoute.addChildren([
   homeRoute,
@@ -87,7 +91,7 @@ const routeTree = rootRoute.addChildren([
   signupRoute,
   recoveryRoute,
   resetRoute,
-  protectedRoute.addChildren([researchRoute, ...protectedPages]),
+  protectedRoute.addChildren([researchRoute, workspacesRoute, workspaceDetailRoute, companyDetailRoute, trackedCompaniesRoute, ...protectedPages]),
 ]);
 
 export const router = createRouter({ routeTree, context: { auth: undefined as never } });
