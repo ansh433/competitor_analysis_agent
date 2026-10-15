@@ -84,6 +84,12 @@ class DeterministicModelProvider:
 
 
 def deterministic_schema_fixture(schema_name: str) -> dict[str, object]:
+    def fact(value: str | None, urls: list[str] | None = None) -> dict[str, object]:
+        return {
+            "value": value,
+            "classification": "sourced_fact" if value else "unavailable_information",
+            "source_urls": urls or (["https://example.com/companies/acme"] if value else []),
+        }
     fixtures: dict[str, dict[str, object]] = {
         "ResolvedCompanyIdentity": {
             "canonical_name": "Acme Collaboration",
@@ -92,6 +98,41 @@ def deterministic_schema_fixture(schema_name: str) -> dict[str, object]:
             "domain": "example.com",
             "ambiguities": [],
             "confidence": 0.96,
+        },
+        "CompanyProfile": {
+            "company_name": "Acme Collaboration",
+            "legal_name": fact("Acme Collaboration, Inc."),
+            "industry": fact("Collaboration software"),
+            "headquarters": fact(None),
+            "products": ["Project workspace", "Workflow integrations"],
+            "target_customers": ["Product teams", "Engineering teams"],
+            "positioning": fact("Fast, reliable project visibility"),
+            "geographies": [],
+            "business_model": fact("Per-user software subscription"),
+        },
+        "ProductAndPricingProfile": {
+            "products": ["Project workspace", "Workflow integrations"],
+            "plans": [
+                {
+                    "name": "Starter",
+                    "public_price": "$0",
+                    "billing_basis": "per user/month",
+                    "included_features": ["Core workspace"],
+                    "source_url": "https://example.com/pricing/acme",
+                    "classification": "sourced_fact",
+                },
+                {
+                    "name": "Team",
+                    "public_price": "$12",
+                    "billing_basis": "per user/month",
+                    "included_features": ["Integrations", "Advanced workflows"],
+                    "source_url": "https://example.com/pricing/acme",
+                    "classification": "sourced_fact",
+                },
+            ],
+            "pricing_model": fact("Freemium per-user subscription", ["https://example.com/pricing/acme"]),
+            "differentiators": [fact("Workflow speed")],
+            "unavailable_information": ["Negotiated enterprise pricing"],
         },
     }
     return fixtures.get(schema_name, {})
