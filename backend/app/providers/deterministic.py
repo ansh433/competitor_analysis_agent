@@ -78,12 +78,12 @@ class DeterministicModelProvider:
         user_prompt: str,
         schema: type[ResponseModel],
     ) -> ResponseModel:
-        del system_prompt, user_prompt
-        fixture = deterministic_schema_fixture(schema.__name__)
+        del system_prompt
+        fixture = deterministic_schema_fixture(schema.__name__, user_prompt)
         return schema.model_validate(fixture)
 
 
-def deterministic_schema_fixture(schema_name: str) -> dict[str, object]:
+def deterministic_schema_fixture(schema_name: str, prompt: str = "") -> dict[str, object]:
     def fact(value: str | None, urls: list[str] | None = None) -> dict[str, object]:
         return {
             "value": value,
@@ -134,6 +134,46 @@ def deterministic_schema_fixture(schema_name: str) -> dict[str, object]:
             "differentiators": [fact("Workflow speed")],
             "unavailable_information": ["Negotiated enterprise pricing"],
         },
+        "CompetitorDiscovery": {
+            "candidates": [
+                {
+                    "name": "Northstar Work",
+                    "website": "https://northstar.example.com",
+                    "relationship_type": "competitor",
+                    "proximity": "direct",
+                    "reason": "Targets the same product and engineering teams with project workflows.",
+                    "confidence": 0.9,
+                    "evidence_urls": ["https://news.example.com/acme-alternatives"],
+                },
+                {
+                    "name": "Taskboard Suite",
+                    "website": "https://taskboard.example.com",
+                    "relationship_type": "substitute",
+                    "proximity": "indirect",
+                    "reason": "General work management can replace dedicated product planning workflows.",
+                    "confidence": 0.78,
+                    "evidence_urls": ["https://docs.example.com/work-management"],
+                },
+            ],
+            "discovery_notes": ["Candidates require normalized product comparison."],
+        },
     }
-    return fixtures.get(schema_name, {})
+    fixture = fixtures.get(schema_name, {})
+    if schema_name == "ResolvedCompanyIdentity" and "northstar" in prompt.lower():
+        return {
+            **fixture,
+            "canonical_name": "Northstar Work",
+            "legal_name": "Northstar Work, Inc.",
+            "website": "https://northstar.example.com",
+            "domain": "northstar.example.com",
+        }
+    if schema_name == "ResolvedCompanyIdentity" and "taskboard" in prompt.lower():
+        return {
+            **fixture,
+            "canonical_name": "Taskboard Suite",
+            "legal_name": "Taskboard Suite, Inc.",
+            "website": "https://taskboard.example.com",
+            "domain": "taskboard.example.com",
+        }
+    return fixture
 
