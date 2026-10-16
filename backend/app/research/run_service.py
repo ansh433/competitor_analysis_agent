@@ -63,6 +63,21 @@ def get_owned_research_run(session: Session, user_id: UUID, run_id: UUID) -> Res
     return research_run
 
 
+def get_latest_company_research_run(
+    session: Session,
+    user_id: UUID,
+    company_id: UUID,
+) -> ResearchRun:
+    research_run = session.exec(
+        select(ResearchRun)
+        .where(ResearchRun.user_id == user_id, ResearchRun.company_id == company_id)
+        .order_by(ResearchRun.created_at.desc())
+    ).first()
+    if not research_run:
+        raise ResourceNotFoundError("Research run not found")
+    return research_run
+
+
 def list_run_evidence(session: Session, run_id: UUID) -> list[Evidence]:
     return list(
         session.exec(

@@ -42,6 +42,18 @@ button, input, textarea, select { font: inherit; }
 
 .form-input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgb(23 109 102 / 18%); }
 
+.dossier-prose { max-width: 74ch; color: var(--ink); }
+.dossier-prose h1 { margin: 0 0 2rem; font-family: var(--font-display); font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.05; color: var(--navy); }
+.dossier-prose h2 { margin: 2.75rem 0 1rem; border-bottom: 1px solid var(--line); padding-bottom: 0.65rem; font-family: var(--font-display); font-size: 1.75rem; line-height: 1.2; color: var(--navy); }
+.dossier-prose p, .dossier-prose li { line-height: 1.75; }
+.dossier-prose ul, .dossier-prose ol { margin: 1rem 0; padding-left: 1.5rem; }
+.dossier-prose li { margin: 0.45rem 0; }
+.dossier-prose table { display: block; width: 100%; overflow-x: auto; border-collapse: collapse; font-size: 0.875rem; }
+.dossier-prose th, .dossier-prose td { min-width: 10rem; border: 1px solid var(--line); padding: 0.75rem; text-align: left; vertical-align: top; }
+.dossier-prose th { background: var(--navy); color: white; }
+.dossier-prose a, .citation-link { color: var(--teal); text-decoration: underline; text-underline-offset: 0.2em; }
+.citation-link { border: 0; background: transparent; padding: 0; font: inherit; cursor: pointer; }
+
 @media (prefers-reduced-motion: no-preference) {
   main > section { animation: reveal 260ms ease-out both; }
 }

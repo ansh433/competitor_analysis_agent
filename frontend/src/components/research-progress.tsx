@@ -1,5 +1,9 @@
 import { Check, CircleDashed, Database, Search, Wrench } from "lucide-react";
 
+import type { EvidenceArtifact } from "../research/artifact-types";
+import { ComparisonMatrixView } from "./comparison-matrix";
+import { DossierReport } from "./dossier-report";
+
 export interface ResearchStageView {
   name: string;
   detail: string;
@@ -19,9 +23,13 @@ interface ResearchProgressProps {
   sources: Array<{ sourceId: string; title: string; publisher: string }>;
   streamedText: string;
   isFinished: boolean;
+  evidence: EvidenceArtifact[];
+  gaps: Array<{ gapId: string; question: string; reportSection: string }>;
+  comparison: Record<string, unknown> | null;
+  conversationId: string | null;
 }
 
-export function ResearchProgress({ stages, tools, sources, streamedText, isFinished }: ResearchProgressProps): React.JSX.Element {
+export function ResearchProgress({ stages, tools, sources, streamedText, isFinished, evidence, gaps, comparison, conversationId }: ResearchProgressProps): React.JSX.Element {
   return (
     <section aria-live="polite" className="mt-10 grid gap-6 lg:grid-cols-[20rem_1fr]">
       <div className="space-y-6">
@@ -50,11 +58,12 @@ export function ResearchProgress({ stages, tools, sources, streamedText, isFinis
           <h2 className="font-display text-2xl">Live research notes</h2>
           <span className="text-sm text-[var(--muted)]">{isFinished ? "Complete" : "In progress"}</span>
         </div>
-        <div className="min-h-64 whitespace-pre-wrap p-6 leading-7">{streamedText || "The first verified findings will appear here."}</div>
+        <div className="min-h-64 p-6 leading-7">{streamedText ? <DossierReport markdown={streamedText} evidence={evidence} conversationId={conversationId ?? undefined} /> : "The first verified findings will appear here."}</div>
         <div className="border-t border-[var(--line)] bg-stone-50 px-6 py-4">
-          <p className="flex items-center gap-2 text-sm font-medium"><Database aria-hidden="true" size={16} /> {sources.length} sources collected</p>
+          <p className="flex items-center gap-2 text-sm font-medium"><Database aria-hidden="true" size={16} /> {sources.length} sources collected · {evidence.length} accepted evidence records · {gaps.length} open gaps</p>
         </div>
       </div>
+      {comparison ? <div className="lg:col-span-2"><h2 className="mb-4 font-display text-3xl text-[var(--navy)]">Comparison artifact</h2><ComparisonMatrixView comparison={comparison} /></div> : null}
     </section>
   );
 }

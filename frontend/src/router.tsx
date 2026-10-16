@@ -11,6 +11,7 @@ import { AppShell } from "./components/app-shell";
 import { PagePlaceholder } from "./components/page-placeholder";
 import { AuthPage } from "./pages/auth-page";
 import { CompanyDetailPage } from "./pages/company-detail-page";
+import { ComparisonPage } from "./pages/comparison-page";
 import { ResearchStartPage } from "./pages/research-start-page";
 import { TrackedCompaniesPage } from "./pages/tracked-companies-page";
 import { WorkspaceDetailPage } from "./pages/workspace-detail-page";
@@ -62,7 +63,6 @@ const homeRoute = createRoute({
 
 const pages = [
   ["/dashboard", "Decision desk", "Resume active research, review evidence coverage, and monitor open questions."],
-  ["/comparisons/$comparisonId", "Company comparison", "Compare normalized capabilities, positioning, pricing, and evidence confidence."],
   ["/settings", "Account settings", "Manage your profile, password, model access, and research preferences."],
   ["/admin", "Administration", "Manage users, account access, and research quotas."],
 ] as const;
@@ -84,6 +84,7 @@ const workspacesRoute = createRoute({ getParentRoute: () => protectedRoute, path
 const workspaceDetailRoute = createRoute({ getParentRoute: () => protectedRoute, path: "/workspaces/$workspaceId", component: WorkspaceDetailPage });
 const companyDetailRoute = createRoute({ getParentRoute: () => protectedRoute, path: "/companies/$companyId", component: CompanyDetailPage });
 const trackedCompaniesRoute = createRoute({ getParentRoute: () => protectedRoute, path: "/tracked-companies", component: TrackedCompaniesPage });
+const comparisonRoute = createRoute({ getParentRoute: () => protectedRoute, path: "/comparisons/$comparisonId", component: ComparisonPage });
 
 const routeTree = rootRoute.addChildren([
   homeRoute,
@@ -91,7 +92,7 @@ const routeTree = rootRoute.addChildren([
   signupRoute,
   recoveryRoute,
   resetRoute,
-  protectedRoute.addChildren([researchRoute, workspacesRoute, workspaceDetailRoute, companyDetailRoute, trackedCompaniesRoute, ...protectedPages]),
+  protectedRoute.addChildren([researchRoute, workspacesRoute, workspaceDetailRoute, companyDetailRoute, trackedCompaniesRoute, comparisonRoute, ...protectedPages]),
 ]);
 
 export const router = createRouter({ routeTree, context: { auth: undefined as never } });

@@ -1,3 +1,4 @@
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, ArrowRight, Gauge } from "lucide-react";
 import { FormEvent, useState } from "react";
 
@@ -5,6 +6,8 @@ import { apiRequest } from "../api/client";
 import { ResearchProgress, type ResearchStageView, type ToolExecutionView } from "../components/research-progress";
 import { useQuotaStatus } from "../quotas/use-quota";
 import type { ResearchEventPayload } from "../proto/competitor-events";
+import type { EvidenceArtifact, ResearchRunArtifact } from "../research/artifact-types";
+import type { WorkspaceSummary } from "../research/types";
 import { postResearchStream } from "../streaming/research-stream";
 
 interface ResearchViewState {
@@ -14,14 +17,25 @@ interface ResearchViewState {
   streamedText: string;
   isFinished: boolean;
   error: string | null;
+  evidence: EvidenceArtifact[];
+  gaps: Array<{ gapId: string; question: string; reportSection: string }>;
+  comparison: Record<string, unknown> | null;
+  conversationId: string | null;
+  researchRunId: string | null;
 }
 
 const initialResearchState: ResearchViewState = {
   stages: [], tools: [], sources: [], streamedText: "", isFinished: false, error: null,
+  evidence: [], gaps: [], comparison: null, conversationId: null, researchRunId: null,
 };
 
 export function ResearchStartPage(): React.JSX.Element {
   const quota = useQuotaStatus();
+  const queryClient = useQueryClient();
+  const workspaces = useQuery({
+    queryKey: ["workspaces"],
+    queryFn: () => apiRequest<{ workspaces: WorkspaceSummary[]; total: number }>("/workspaces"),
+  });
   const [research, setResearch] = useState<ResearchViewState>(initialResearchState);
   const [isRunning, setIsRunning] = useState(false);
   const standard = quota.data?.tiers.find((tier) => tier.tier === "standard");
@@ -35,13 +49,20 @@ export function ResearchStartPage(): React.JSX.Element {
     const company = String(data.get("company") ?? "");
     const objective = String(data.get("objective") ?? "");
     try {
-      const conversation = await apiRequest<{ id: string }>("/conversations", {
+      const researchRun = await apiRequest<ResearchRunArtifact>("/research-runs", {
         method: "POST",
-        body: JSON.stringify({ title: `${company} research` }),
+        body: JSON.stringify({
+          workspace_id: String(data.get("workspaceId") ?? ""),
+          company_name_or_url: company,
+          objective,
+          model_tier: String(data.get("modelTier") ?? "standard"),
+        }),
       });
-      for await (const event of postResearchStream(`/conversations/${conversation.id}/responses`, { content: `${company}: ${objective}` })) {
+      setResearch((current) => ({ ...current, researchRunId: researchRun.id, conversationId: researchRun.conversation_id }));
+      for await (const event of postResearchStream(`/research-runs/${researchRun.id}/stream`, {})) {
         setResearch((current) => applyPayload(current, event.payload));
       }
+      void queryClient.invalidateQueries({ queryKey: ["quota-status"] });
     } catch (error) {
       setResearch((current) => ({ ...current, error: error instanceof Error ? error.message : "Research failed" }));
     } finally {
@@ -71,6 +92,13 @@ export function ResearchStartPage(): React.JSX.Element {
 
           <form onSubmit={handleStartResearch} className="mt-10 space-y-6 border border-[var(--line)] bg-white p-6 md:p-8">
             <label className="block text-sm font-semibold">
+              Workspace
+              <select name="workspaceId" required className="form-input" disabled={isDisabled}>
+                <option value="">Select a workspace</option>
+                {workspaces.data?.workspaces.map((workspace) => <option key={workspace.id} value={workspace.id}>{workspace.name}</option>)}
+              </select>
+            </label>
+            <label className="block text-sm font-semibold">
               Company name or website
               <input
                 name="company"
@@ -79,6 +107,13 @@ export function ResearchStartPage(): React.JSX.Element {
                 placeholder="Example: Linear or linear.app"
                 disabled={isDisabled}
               />
+            </label>
+            <label className="block text-sm font-semibold">
+              Model tier
+              <select name="modelTier" className="form-input" disabled={isDisabled}>
+                <option value="standard">Standard research</option>
+                <option value="upgraded">Upgraded model</option>
+              </select>
             </label>
             <label className="block text-sm font-semibold">
               Research objective
@@ -120,6 +155,8 @@ export function ResearchStartPage(): React.JSX.Element {
 }
 
 function applyPayload(state: ResearchViewState, payload: ResearchEventPayload): ResearchViewState {
+  if (payload.kind === "conversation_identified") return { ...state, conversationId: payload.conversationId };
+  if (payload.kind === "research_run_identified") return { ...state, researchRunId: payload.researchRunId };
   if (payload.kind === "graph_stage_started") {
     return { ...state, stages: [...state.stages, { name: payload.stageName, detail: payload.detail, status: "active" }] };
   }
@@ -135,6 +172,13 @@ function applyPayload(state: ResearchViewState, payload: ResearchEventPayload): 
   if (payload.kind === "source_discovered") {
     return { ...state, sources: [...state.sources, { sourceId: payload.sourceId, title: payload.title, publisher: payload.publisher }] };
   }
+  if (payload.kind === "evidence_accepted") {
+    return { ...state, evidence: [...state.evidence, { id: payload.evidenceId, claim: payload.claim, source_url: payload.sourceUrl, confidence: payload.confidence }] };
+  }
+  if (payload.kind === "research_gap_found") {
+    return { ...state, gaps: [...state.gaps, { gapId: payload.gapId, question: payload.question, reportSection: payload.reportSection }] };
+  }
+  if (payload.kind === "comparison_artifact") return { ...state, comparison: payload.structuredResult };
   if (payload.kind === "text_chunk") return { ...state, streamedText: state.streamedText + payload.text };
   if (payload.kind === "final_report_artifact") return { ...state, streamedText: payload.reportMarkdown };
   if (payload.kind === "error") return { ...state, error: payload.message };

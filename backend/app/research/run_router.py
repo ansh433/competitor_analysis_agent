@@ -16,6 +16,7 @@ from app.research.run_service import (
     get_owned_comparison,
     get_owned_evidence,
     get_owned_research_run,
+    get_latest_company_research_run,
     get_run_comparison,
     list_run_evidence,
 )
@@ -54,6 +55,28 @@ def get_research_run_route(
         **ResearchRunResponse.model_validate(research_run).model_dump(),
         evidence=[
             EvidenceResponse.model_validate(item) for item in list_run_evidence(session, run_id)
+        ],
+        comparison_id=comparison.id if comparison else None,
+    )
+
+
+@router.get(
+    "/companies/{company_id}/research-runs/latest",
+    response_model=ResearchRunDetailResponse,
+    status_code=200,
+)
+def get_latest_company_research_run_route(
+    company_id: UUID,
+    current_user: CurrentUser,
+    session: SessionDependency,
+) -> ResearchRunDetailResponse:
+    research_run = get_latest_company_research_run(session, current_user.id, company_id)
+    comparison = get_run_comparison(session, research_run.id)
+    return ResearchRunDetailResponse(
+        **ResearchRunResponse.model_validate(research_run).model_dump(),
+        evidence=[
+            EvidenceResponse.model_validate(item)
+            for item in list_run_evidence(session, research_run.id)
         ],
         comparison_id=comparison.id if comparison else None,
     )

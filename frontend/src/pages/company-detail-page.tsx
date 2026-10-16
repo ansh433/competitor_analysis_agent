@@ -3,12 +3,19 @@ import { Link, useParams } from "@tanstack/react-router";
 import { BookmarkPlus, ExternalLink } from "lucide-react";
 
 import { apiRequest } from "../api/client";
+import { DossierReport } from "../components/dossier-report";
+import type { ResearchRunArtifact } from "../research/artifact-types";
 import type { CompanySummary, TrackedCompanySummary } from "../research/types";
 
 export function CompanyDetailPage(): React.JSX.Element {
   const { companyId } = useParams({ strict: false }) as { companyId: string };
   const queryClient = useQueryClient();
   const company = useQuery({ queryKey: ["company", companyId], queryFn: () => apiRequest<CompanySummary>(`/companies/${companyId}`) });
+  const latestRun = useQuery({
+    queryKey: ["company-latest-run", companyId],
+    queryFn: () => apiRequest<ResearchRunArtifact>(`/companies/${companyId}/research-runs/latest`),
+    retry: false,
+  });
   const track = useMutation({
     mutationFn: () => apiRequest<TrackedCompanySummary>(`/companies/${companyId}/tracking`, { method: "PUT", body: JSON.stringify({ monitoring_preferences: { news: true } }) }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tracked-companies"] }),
@@ -31,6 +38,12 @@ export function CompanyDetailPage(): React.JSX.Element {
         <div className="py-5 md:px-5"><dt className="text-sm text-[var(--muted)]">Research status</dt><dd className="mt-1 font-medium">{company.data?.research_status.replaceAll("_", " ")}</dd></div>
       </dl>
       {company.data?.website ? <a href={company.data.website} target="_blank" rel="noreferrer" className="mt-6 inline-flex items-center gap-2 text-sm text-[var(--teal)] underline">Visit official website <ExternalLink aria-hidden="true" size={15} /></a> : null}
+      {latestRun.data?.final_report ? (
+        <div className="mt-12 border-t border-[var(--line)] pt-8">
+          <div className="mb-6 flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm font-semibold text-[var(--teal)]">Latest completed run</p><h2 className="mt-1 font-display text-3xl">Decision-ready dossier</h2></div>{latestRun.data.comparison_id ? <Link to="/comparisons/$comparisonId" params={{ comparisonId: latestRun.data.comparison_id }} className="text-sm text-[var(--teal)] underline">Open full comparison</Link> : null}</div>
+          <DossierReport markdown={latestRun.data.final_report} evidence={latestRun.data.evidence} conversationId={latestRun.data.conversation_id} />
+        </div>
+      ) : null}
     </section>
   );
 }
