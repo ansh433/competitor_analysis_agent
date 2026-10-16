@@ -38,7 +38,8 @@ export async function apiRequest<ResponseBody>(
   const headers = new Headers(init.headers);
   const token = getStoredToken();
   if (token) headers.set("Authorization", `Bearer ${token}`);
-  if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+  if (init.body && !headers.has("Content-Type"))
+    headers.set("Content-Type", "application/json");
 
   const response = await fetch(`${API_BASE_URL}${path}`, { ...init, headers });
   if (!response.ok) {
@@ -57,4 +58,3 @@ export async function apiRequest<ResponseBody>(
   if (response.status === 204) return undefined as ResponseBody;
   return (await response.json()) as ResponseBody;
 }
-

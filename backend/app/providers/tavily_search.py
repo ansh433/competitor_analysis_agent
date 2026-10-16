@@ -55,4 +55,3 @@ class TavilySearchProvider:
                 )
             )
         return SearchResponse(query=query, results=[result for result in results if result.url])
-

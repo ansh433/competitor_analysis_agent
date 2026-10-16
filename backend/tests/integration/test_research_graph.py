@@ -63,4 +63,3 @@ def test_explicit_state_graph_runs_parallel_research_and_bounded_gap_loop() -> N
     ends = [event for event in emitted if event.kind == "tool_ended"]
     assert len(starts) == len(ends)
     assert all(event.execution_time_ms >= 0 for event in ends)
-

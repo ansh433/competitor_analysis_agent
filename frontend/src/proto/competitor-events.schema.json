@@ -1,0 +1,309 @@
+{
+  "nested": {
+    "competitor_intelligence": {
+      "nested": {
+        "streaming": {
+          "nested": {
+            "v1": {
+              "nested": {
+                "ConversationIdentified": {
+                  "fields": {
+                    "conversationId": {
+                      "type": "string",
+                      "id": 1
+                    }
+                  }
+                },
+                "ResearchRunIdentified": {
+                  "fields": {
+                    "researchRunId": {
+                      "type": "string",
+                      "id": 1
+                    }
+                  }
+                },
+                "TextChunk": {
+                  "fields": {
+                    "text": {
+                      "type": "string",
+                      "id": 1
+                    },
+                    "isFinalChunk": {
+                      "type": "bool",
+                      "id": 2
+                    }
+                  }
+                },
+                "GraphStageEvent": {
+                  "fields": {
+                    "stageName": {
+                      "type": "string",
+                      "id": 1
+                    },
+                    "stageIndex": {
+                      "type": "int32",
+                      "id": 2
+                    },
+                    "detail": {
+                      "type": "string",
+                      "id": 3
+                    }
+                  }
+                },
+                "ToolStarted": {
+                  "fields": {
+                    "executionId": {
+                      "type": "string",
+                      "id": 1
+                    },
+                    "toolName": {
+                      "type": "string",
+                      "id": 2
+                    },
+                    "argumentsJson": {
+                      "type": "string",
+                      "id": 3
+                    }
+                  }
+                },
+                "ToolEnded": {
+                  "fields": {
+                    "executionId": {
+                      "type": "string",
+                      "id": 1
+                    },
+                    "toolName": {
+                      "type": "string",
+                      "id": 2
+                    },
+                    "outputJson": {
+                      "type": "string",
+                      "id": 3
+                    },
+                    "executionTimeMs": {
+                      "type": "int64",
+                      "id": 4
+                    },
+                    "success": {
+                      "type": "bool",
+                      "id": 5
+                    }
+                  }
+                },
+                "SourceDiscovered": {
+                  "fields": {
+                    "sourceId": {
+                      "type": "string",
+                      "id": 1
+                    },
+                    "title": {
+                      "type": "string",
+                      "id": 2
+                    },
+                    "url": {
+                      "type": "string",
+                      "id": 3
+                    },
+                    "publisher": {
+                      "type": "string",
+                      "id": 4
+                    }
+                  }
+                },
+                "EvidenceEvent": {
+                  "fields": {
+                    "evidenceId": {
+                      "type": "string",
+                      "id": 1
+                    },
+                    "claim": {
+                      "type": "string",
+                      "id": 2
+                    },
+                    "sourceUrl": {
+                      "type": "string",
+                      "id": 3
+                    },
+                    "reason": {
+                      "type": "string",
+                      "id": 4
+                    },
+                    "confidence": {
+                      "type": "double",
+                      "id": 5
+                    }
+                  }
+                },
+                "ResearchGapFound": {
+                  "fields": {
+                    "gapId": {
+                      "type": "string",
+                      "id": 1
+                    },
+                    "question": {
+                      "type": "string",
+                      "id": 2
+                    },
+                    "reportSection": {
+                      "type": "string",
+                      "id": 3
+                    }
+                  }
+                },
+                "ComparisonArtifact": {
+                  "fields": {
+                    "comparisonId": {
+                      "type": "string",
+                      "id": 1
+                    },
+                    "structuredResultJson": {
+                      "type": "string",
+                      "id": 2
+                    }
+                  }
+                },
+                "FinalReportArtifact": {
+                  "fields": {
+                    "researchRunId": {
+                      "type": "string",
+                      "id": 1
+                    },
+                    "reportMarkdown": {
+                      "type": "string",
+                      "id": 2
+                    },
+                    "confidenceScore": {
+                      "type": "double",
+                      "id": 3
+                    },
+                    "coverageScore": {
+                      "type": "double",
+                      "id": 4
+                    }
+                  }
+                },
+                "StreamError": {
+                  "fields": {
+                    "code": {
+                      "type": "string",
+                      "id": 1
+                    },
+                    "message": {
+                      "type": "string",
+                      "id": 2
+                    },
+                    "retryable": {
+                      "type": "bool",
+                      "id": 3
+                    }
+                  }
+                },
+                "StreamFinished": {
+                  "fields": {
+                    "success": {
+                      "type": "bool",
+                      "id": 1
+                    }
+                  }
+                },
+                "StreamEvent": {
+                  "oneofs": {
+                    "payload": {
+                      "oneof": [
+                        "conversationIdentified",
+                        "researchRunIdentified",
+                        "textChunk",
+                        "graphStageStarted",
+                        "graphStageEnded",
+                        "toolStarted",
+                        "toolEnded",
+                        "sourceDiscovered",
+                        "evidenceAccepted",
+                        "evidenceRejected",
+                        "researchGapFound",
+                        "comparisonArtifact",
+                        "finalReportArtifact",
+                        "error",
+                        "finished"
+                      ]
+                    }
+                  },
+                  "fields": {
+                    "eventId": {
+                      "type": "string",
+                      "id": 1
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "id": 2
+                    },
+                    "conversationIdentified": {
+                      "type": "ConversationIdentified",
+                      "id": 3
+                    },
+                    "researchRunIdentified": {
+                      "type": "ResearchRunIdentified",
+                      "id": 4
+                    },
+                    "textChunk": {
+                      "type": "TextChunk",
+                      "id": 5
+                    },
+                    "graphStageStarted": {
+                      "type": "GraphStageEvent",
+                      "id": 6
+                    },
+                    "graphStageEnded": {
+                      "type": "GraphStageEvent",
+                      "id": 7
+                    },
+                    "toolStarted": {
+                      "type": "ToolStarted",
+                      "id": 8
+                    },
+                    "toolEnded": {
+                      "type": "ToolEnded",
+                      "id": 9
+                    },
+                    "sourceDiscovered": {
+                      "type": "SourceDiscovered",
+                      "id": 10
+                    },
+                    "evidenceAccepted": {
+                      "type": "EvidenceEvent",
+                      "id": 11
+                    },
+                    "evidenceRejected": {
+                      "type": "EvidenceEvent",
+                      "id": 12
+                    },
+                    "researchGapFound": {
+                      "type": "ResearchGapFound",
+                      "id": 13
+                    },
+                    "comparisonArtifact": {
+                      "type": "ComparisonArtifact",
+                      "id": 14
+                    },
+                    "finalReportArtifact": {
+                      "type": "FinalReportArtifact",
+                      "id": 15
+                    },
+                    "error": {
+                      "type": "StreamError",
+                      "id": 16
+                    },
+                    "finished": {
+                      "type": "StreamFinished",
+                      "id": 17
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

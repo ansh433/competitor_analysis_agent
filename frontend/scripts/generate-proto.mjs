@@ -1,8 +1,15 @@
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 
-const contract = await readFile(new URL("../../proto/competitor_events.proto", import.meta.url), "utf8");
-if (!contract.includes("message StreamEvent")) {
-  throw new Error("The canonical StreamEvent contract is missing");
-}
-console.log("The checked-in browser binding matches proto/competitor_events.proto; update both together.");
+import protobuf from "protobufjs";
 
+const contract = await readFile(
+  new URL("../../proto/competitor_events.proto", import.meta.url),
+  "utf8",
+);
+const root = protobuf.parse(contract, { keepCase: false }).root;
+const output = new URL(
+  "../src/proto/competitor-events.schema.json",
+  import.meta.url,
+);
+await writeFile(output, `${JSON.stringify(root.toJSON(), null, 2)}\n`, "utf8");
+console.log(`Generated ${output.pathname}`);

@@ -39,4 +39,3 @@ def require_superuser(current_user: CurrentUser) -> User:
 
 
 Superuser = Annotated[User, Depends(require_superuser)]
-

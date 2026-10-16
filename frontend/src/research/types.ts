@@ -16,7 +16,11 @@ export interface CompanySummary {
   industry: string | null;
   headquarters: string | null;
   description: string | null;
-  research_status: "unresearched" | "in_progress" | "researched" | "needs_refresh";
+  research_status:
+    | "unresearched"
+    | "in_progress"
+    | "researched"
+    | "needs_refresh";
   created_at: string;
   updated_at: string;
 }
@@ -28,4 +32,3 @@ export interface TrackedCompanySummary {
   monitoring_preferences: Record<string, unknown> | null;
   created_at: string;
 }
-

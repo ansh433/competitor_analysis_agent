@@ -33,4 +33,3 @@ class User(TimestampedModel, table=True):
     hashed_password: str = Field(max_length=255, nullable=False)
     is_active: bool = Field(default=True, nullable=False)
     is_superuser: bool = Field(default=False, nullable=False)
-

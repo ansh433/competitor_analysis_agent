@@ -5,10 +5,13 @@ from fastapi.responses import JSONResponse
 
 from app.api.router import api_router
 from app.core.config import Settings, get_settings
+from app.core.db import DatabaseSessionCleanupMiddleware
 from app.core.errors import DomainError
+from app.core.threadpool import install_threadpool_compatibility
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
+    install_threadpool_compatibility()
     runtime_settings = settings or get_settings()
     if runtime_settings.sentry_dsn:
         sentry_sdk.init(
@@ -25,6 +28,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type", "Last-Event-ID"],
     )
+    application.add_middleware(DatabaseSessionCleanupMiddleware)
 
     @application.exception_handler(DomainError)
     async def domain_error_handler(_request: Request, error: DomainError) -> JSONResponse:
@@ -38,4 +42,3 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
 
 app = create_app()
-

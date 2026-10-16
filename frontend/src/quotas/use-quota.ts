@@ -25,4 +25,3 @@ export function useQuotaStatus(): ReturnType<typeof useQuery<QuotaStatus>> {
     queryFn: () => apiRequest<QuotaStatus>("/quotas/me"),
   });
 }
-

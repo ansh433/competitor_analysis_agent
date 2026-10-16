@@ -145,4 +145,3 @@ def _find_or_create_company(
     session.add(company)
     session.flush()
     return company
-

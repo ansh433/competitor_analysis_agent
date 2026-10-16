@@ -64,4 +64,3 @@ class ResearchProviders:
     search: SearchProvider
     pages: PageFetcher
     model: ModelProvider
-

@@ -23,7 +23,9 @@ def stream_initial_response(
     user_message: str,
 ) -> Iterable[str]:
     add_message(session, conversation, MessageSender.USER, user_message)
-    assistant_text = "Research request recorded. Choose a workspace and company to begin the evidence workflow."
+    assistant_text = (
+        "Research request recorded. Choose a workspace and company to begin the evidence workflow."
+    )
     events = [
         StreamEvent(payload=ConversationIdentified(conversation_id=conversation.id)),
         StreamEvent(
@@ -77,4 +79,3 @@ def list_stream_event_logs(session: Session, conversation_id: UUID) -> list[Stre
             .order_by(StreamEventLog.created_at, StreamEventLog.id)
         )
     )
-

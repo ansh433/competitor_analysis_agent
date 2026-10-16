@@ -14,7 +14,11 @@ const queryClient = new QueryClient({
 function ApplicationRouter(): React.JSX.Element {
   const auth = useAuth();
   if (auth.isLoading) {
-    return <main className="grid min-h-screen place-items-center bg-[var(--paper)]">Loading workspace…</main>;
+    return (
+      <main className="grid min-h-screen place-items-center bg-[var(--paper)]">
+        Loading workspace…
+      </main>
+    );
   }
   return <RouterProvider router={router} context={{ auth }} />;
 }
@@ -30,4 +34,3 @@ createRoot(root).render(
     </QueryClientProvider>
   </StrictMode>,
 );
-

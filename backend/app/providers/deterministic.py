@@ -90,6 +90,7 @@ def deterministic_schema_fixture(schema_name: str, prompt: str = "") -> dict[str
             "classification": "sourced_fact" if value else "unavailable_information",
             "source_urls": urls or (["https://example.com/companies/acme"] if value else []),
         }
+
     fixtures: dict[str, dict[str, object]] = {
         "ResolvedCompanyIdentity": {
             "canonical_name": "Acme Collaboration",
@@ -130,7 +131,9 @@ def deterministic_schema_fixture(schema_name: str, prompt: str = "") -> dict[str
                     "classification": "sourced_fact",
                 },
             ],
-            "pricing_model": fact("Freemium per-user subscription", ["https://example.com/pricing/acme"]),
+            "pricing_model": fact(
+                "Freemium per-user subscription", ["https://example.com/pricing/acme"]
+            ),
             "differentiators": [fact("Workflow speed")],
             "unavailable_information": ["Negotiated enterprise pricing"],
         },
@@ -172,7 +175,13 @@ def deterministic_schema_fixture(schema_name: str, prompt: str = "") -> dict[str
         },
         "ComparisonMatrix": {
             "company_names": ["Acme Collaboration", "Northstar Work", "Taskboard Suite"],
-            "dimensions": ["Target customer", "Core product", "Pricing model", "Public entry price", "Positioning"],
+            "dimensions": [
+                "Target customer",
+                "Core product",
+                "Pricing model",
+                "Public entry price",
+                "Positioning",
+            ],
             "rows": [
                 {
                     "dimension": "Public entry price",
@@ -252,4 +261,3 @@ def deterministic_schema_fixture(schema_name: str, prompt: str = "") -> dict[str
             "domain": "taskboard.example.com",
         }
     return fixture
-

@@ -17,4 +17,3 @@ class StreamEventLogResponse(BaseModel):
 
 class StreamEventLogListResponse(BaseModel):
     events: list[StreamEventLogResponse]
-

@@ -1,5 +1,8 @@
 import { ApiError, getStoredToken } from "../api/client";
-import { decodeResearchEvent, type ResearchStreamEvent } from "../proto/competitor-events";
+import {
+  type ResearchStreamEvent,
+  decodeResearchEvent,
+} from "../proto/competitor-events";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? "/api/v1";
 
@@ -9,7 +12,10 @@ export async function* postResearchStream(
   body: Record<string, unknown>,
   signal?: AbortSignal,
 ): AsyncGenerator<ResearchStreamEvent> {
-  const headers = new Headers({ "Content-Type": "application/json", Accept: "text/event-stream" });
+  const headers = new Headers({
+    "Content-Type": "application/json",
+    Accept: "text/event-stream",
+  });
   const token = getStoredToken();
   if (token) headers.set("Authorization", `Bearer ${token}`);
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -19,7 +25,10 @@ export async function* postResearchStream(
     signal,
   });
   if (!response.ok || !response.body) {
-    throw new ApiError(response.status, `Research stream failed: ${response.statusText}`);
+    throw new ApiError(
+      response.status,
+      `Research stream failed: ${response.statusText}`,
+    );
   }
 
   const reader = response.body.getReader();
@@ -43,4 +52,3 @@ export async function* postResearchStream(
     if (done) break;
   }
 }
-

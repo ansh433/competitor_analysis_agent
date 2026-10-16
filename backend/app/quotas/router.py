@@ -1,10 +1,11 @@
 from fastapi import APIRouter
 
 from app.api.deps import CurrentUser, SessionDependency, SettingsDependency
+from app.core.threadpool import ApplicationRoute
 from app.quotas.schemas import QuotaStatusResponse, TierQuotaResponse
 from app.quotas.service import list_quota_status
 
-router = APIRouter(prefix="/quotas", tags=["quotas"])
+router = APIRouter(prefix="/quotas", tags=["quotas"], route_class=ApplicationRoute)
 
 
 @router.get("/me", response_model=QuotaStatusResponse, status_code=200)
@@ -21,4 +22,3 @@ def get_my_quota_route(
         maximum_gap_research_loops=settings.maximum_gap_research_loops,
         can_start_research=any(status.bypassed or status.remaining > 0 for status in statuses),
     )
-

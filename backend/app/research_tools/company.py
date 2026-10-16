@@ -117,11 +117,13 @@ def resolve_company_identity(
     raw = tool_input.company_name_or_url.strip()
     parsed = urlsplit(raw if "://" in raw else f"https://{raw}")
     looks_like_url = "." in raw and " " not in raw
-    search_query = f'"{parsed.hostname or raw}" official company' if looks_like_url else f'"{raw}" official company website'
-    results = context.providers.search.search(search_query, maximum_results=5)
-    evidence = "\n".join(
-        f"- {hit.title} | {hit.url} | {hit.snippet}" for hit in results.results
+    search_query = (
+        f'"{parsed.hostname or raw}" official company'
+        if looks_like_url
+        else f'"{raw}" official company website'
     )
+    results = context.providers.search.search(search_query, maximum_results=5)
+    evidence = "\n".join(f"- {hit.title} | {hit.url} | {hit.snippet}" for hit in results.results)
     return context.providers.model.generate_structured(
         UNTRUSTED_EVIDENCE_SYSTEM_PROMPT,
         "Resolve the canonical company identity. If several entities plausibly match, place the "
@@ -169,7 +171,9 @@ def search_company_sources(
                     published_at=hit.published_at,
                 ),
             )
-    return SearchCompanySourcesOutput(query_count=len(focuses), sources=list(by_url.values())[:maximum])
+    return SearchCompanySourcesOutput(
+        query_count=len(focuses), sources=list(by_url.values())[:maximum]
+    )
 
 
 def fetch_web_page(tool_input: FetchWebPageInput, context: ResearchToolContext) -> FetchedSource:
@@ -221,4 +225,3 @@ def _delimit_sources(sources: list[FetchedSource]) -> str:
             "</UNTRUSTED_SOURCE>"
         )
     return "\n\n".join(blocks)
-

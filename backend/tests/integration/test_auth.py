@@ -3,15 +3,15 @@ from uuid import uuid4
 
 import jwt
 import pytest
-from fastapi.testclient import TestClient
 
 from app.core.config import Settings
+from tests.client import IntegrationClient
 
 pytestmark = pytest.mark.integration
 
 
 def test_registration_login_and_current_user(
-    client: TestClient,
+    client: IntegrationClient,
     registered_user: dict[str, str],
     auth_headers: dict[str, str],
 ) -> None:
@@ -23,7 +23,7 @@ def test_registration_login_and_current_user(
     assert response.json()["is_superuser"] is False
 
 
-def test_invalid_jwt_is_rejected(client: TestClient) -> None:
+def test_invalid_jwt_is_rejected(client: IntegrationClient) -> None:
     response = client.get(
         "/api/v1/auth/me",
         headers={"Authorization": "Bearer not-a-valid-jwt"},
@@ -33,7 +33,7 @@ def test_invalid_jwt_is_rejected(client: TestClient) -> None:
     assert response.json()["error"]["code"] == "authentication_required"
 
 
-def test_expired_jwt_is_rejected(client: TestClient, test_settings: Settings) -> None:
+def test_expired_jwt_is_rejected(client: IntegrationClient, test_settings: Settings) -> None:
     expired_token = jwt.encode(
         {
             "sub": str(uuid4()),
@@ -54,7 +54,7 @@ def test_expired_jwt_is_rejected(client: TestClient, test_settings: Settings) ->
     assert response.json()["error"]["message"] == "Invalid or expired authentication token"
 
 
-def test_password_recovery_does_not_disclose_account_existence(client: TestClient) -> None:
+def test_password_recovery_does_not_disclose_account_existence(client: IntegrationClient) -> None:
     response = client.post(
         "/api/v1/auth/password-recovery",
         json={"email": "unknown@example.com"},
@@ -62,4 +62,3 @@ def test_password_recovery_does_not_disclose_account_existence(client: TestClien
 
     assert response.status_code == 202
     assert response.json()["message"] == "If the account exists, a reset link has been sent"
-

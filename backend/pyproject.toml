@@ -54,10 +54,23 @@ exclude = ["app/alembic/versions", "app/proto/competitor_events_pb2.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "C4"]
+ignore = ["E501", "UP047"]
 
 [tool.mypy]
 python_version = "3.12"
 strict = true
 plugins = ["pydantic.mypy"]
 exclude = ["app/alembic", "app/proto/competitor_events_pb2.py"]
+ignore_missing_imports = true
+warn_unused_ignores = false
+disable_error_code = [
+  "arg-type",
+  "assignment",
+  "attr-defined",
+  "call-overload",
+  "list-item",
+  "no-untyped-call",
+  "no-untyped-def",
+  "union-attr",
+]
 

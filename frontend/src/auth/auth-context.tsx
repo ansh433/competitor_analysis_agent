@@ -1,6 +1,18 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
-import { apiRequest, clearStoredToken, getStoredToken, storeToken } from "../api/client";
+import {
+  apiRequest,
+  clearStoredToken,
+  getStoredToken,
+  storeToken,
+} from "../api/client";
 
 export interface AuthenticatedUser {
   id: string;
@@ -25,11 +37,15 @@ export interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-export function AuthProvider({ children }: { children: React.ReactNode }): React.JSX.Element {
-  const [currentUser, setCurrentUser] = useState<AuthenticatedUser | null>(null);
+export function AuthProvider({
+  children,
+}: { children: React.ReactNode }): React.JSX.Element {
+  const [currentUser, setCurrentUser] = useState<AuthenticatedUser | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState(true);
 
-  async function refreshUser(): Promise<void> {
+  const refreshUser = useCallback(async (): Promise<void> => {
     if (!getStoredToken()) {
       setCurrentUser(null);
       setIsLoading(false);
@@ -43,29 +59,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }): React
     } finally {
       setIsLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
     void refreshUser();
-  }, []);
+  }, [refreshUser]);
 
-  async function login(email: string, password: string): Promise<void> {
-    const token = await apiRequest<AccessTokenResponse>("/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    });
-    storeToken(token.access_token);
-    await refreshUser();
-  }
+  const login = useCallback(
+    async (email: string, password: string): Promise<void> => {
+      const token = await apiRequest<AccessTokenResponse>("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
+      storeToken(token.access_token);
+      await refreshUser();
+    },
+    [refreshUser],
+  );
 
-  function logout(): void {
+  const logout = useCallback((): void => {
     clearStoredToken();
     setCurrentUser(null);
-  }
+  }, []);
 
   const value = useMemo(
     () => ({ currentUser, isLoading, login, logout, refreshUser }),
-    [currentUser, isLoading],
+    [currentUser, isLoading, login, logout, refreshUser],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
@@ -75,4 +94,3 @@ export function useAuth(): AuthContextValue {
   if (!context) throw new Error("useAuth must be used inside AuthProvider");
   return context;
 }
-

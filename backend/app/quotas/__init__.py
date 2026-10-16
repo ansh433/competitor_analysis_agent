@@ -1,2 +1,1 @@
 """Per-user research quotas."""
-

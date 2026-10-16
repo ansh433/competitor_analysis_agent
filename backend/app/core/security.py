@@ -3,8 +3,8 @@ from typing import Literal
 from uuid import UUID, uuid4
 
 import jwt
-from pydantic import BaseModel, ValidationError
 from pwdlib import PasswordHash
+from pydantic import BaseModel, ValidationError
 
 from app.core.config import Settings, get_settings
 from app.core.errors import AuthenticationError
@@ -89,4 +89,3 @@ def _create_token(
         "jti": str(uuid4()),
     }
     return jwt.encode(payload, settings.secret_key.get_secret_value(), algorithm=ALGORITHM)
-

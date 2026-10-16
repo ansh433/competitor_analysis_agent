@@ -4,6 +4,7 @@ from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 
 from app.api.deps import CurrentUser, SessionDependency, SettingsDependency
+from app.core.threadpool import ApplicationRoute
 from app.research.run_schemas import (
     ComparisonResponse,
     CreateResearchRunRequest,
@@ -13,16 +14,16 @@ from app.research.run_schemas import (
 )
 from app.research.run_service import (
     create_research_run,
+    get_latest_company_research_run,
     get_owned_comparison,
     get_owned_evidence,
     get_owned_research_run,
-    get_latest_company_research_run,
     get_run_comparison,
     list_run_evidence,
 )
 from app.research.stream_runner import stream_research_run
 
-router = APIRouter(tags=["research runs"])
+router = APIRouter(tags=["research runs"], route_class=ApplicationRoute)
 
 SSE_HEADERS = {
     "Cache-Control": "no-cache, no-transform",
@@ -122,4 +123,3 @@ def get_comparison_route(
     return ComparisonResponse.model_validate(
         get_owned_comparison(session, current_user.id, comparison_id)
     )
-

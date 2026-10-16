@@ -1,17 +1,17 @@
 from pydantic import BaseModel, Field
 
 from app.research_tools.company import (
+    UNTRUSTED_EVIDENCE_SYSTEM_PROMPT,
     CompanyProfile,
     ExtractCompanyProfileInput,
     ExtractProductAndPricingInput,
-    FetchWebPageInput,
     FetchedSource,
+    FetchWebPageInput,
     ProductAndPricingProfile,
     ResolveCompanyIdentityInput,
     ResolvedCompanyIdentity,
     SearchCompanySourcesInput,
     SourceRecord,
-    UNTRUSTED_EVIDENCE_SYSTEM_PROMPT,
     extract_company_profile,
     extract_product_and_pricing,
     fetch_web_page,
@@ -74,9 +74,7 @@ def discover_competitors(
         "an evidence-backed reason and must not be inferred from name similarity alone. Return at "
         f"most {tool_input.maximum_candidates}.\nTARGET: {tool_input.company.model_dump_json()}\n"
         f"PROFILE: {tool_input.profile.model_dump_json()}\n"
-        "<UNTRUSTED_SEARCH_RESULTS>\n"
-        + "\n".join(search_lines)
-        + "\n</UNTRUSTED_SEARCH_RESULTS>",
+        "<UNTRUSTED_SEARCH_RESULTS>\n" + "\n".join(search_lines) + "\n</UNTRUSTED_SEARCH_RESULTS>",
         CompetitorDiscovery,
     )
 
@@ -114,4 +112,3 @@ def research_competitor(
         product_and_pricing=pricing,
         sources=source_output.sources,
     )
-

@@ -134,4 +134,3 @@ class StreamEvent(BaseModel):
     event_id: UUID = Field(default_factory=uuid4)
     timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
     payload: StreamPayload
-

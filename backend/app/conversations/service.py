@@ -128,10 +128,12 @@ def branch_conversation(
                 conversation_id=branch.id,
                 sender=message.sender,
                 content=message.content,
-                structured_metadata={**message.structured_metadata, "branched_from": str(message.id)},
+                structured_metadata={
+                    **message.structured_metadata,
+                    "branched_from": str(message.id),
+                },
             )
         )
     session.commit()
     session.refresh(branch)
     return branch
-

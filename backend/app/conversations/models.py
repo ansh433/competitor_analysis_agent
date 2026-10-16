@@ -1,7 +1,8 @@
 from enum import StrEnum
 from uuid import UUID, uuid4
 
-from sqlalchemy import Column, Enum as SAEnum, ForeignKey, Index, JSON
+from sqlalchemy import JSON, Column, ForeignKey, Index
+from sqlalchemy import Enum as SAEnum
 from sqlmodel import Field
 
 from app.users.models import TimestampedModel
@@ -33,15 +34,20 @@ class Conversation(TimestampedModel, table=True):
 
 class ChatMessage(TimestampedModel, table=True):
     __tablename__ = "chat_messages"
-    __table_args__ = (Index("ix_chat_messages_conversation_created", "conversation_id", "created_at"),)
+    __table_args__ = (
+        Index("ix_chat_messages_conversation_created", "conversation_id", "created_at"),
+    )
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     conversation_id: UUID = Field(
-        sa_column=Column(ForeignKey("conversations.id", ondelete="CASCADE"), nullable=False, index=True)
+        sa_column=Column(
+            ForeignKey("conversations.id", ondelete="CASCADE"), nullable=False, index=True
+        )
     )
     sender: MessageSender = Field(
         sa_column=Column(SAEnum(MessageSender, native_enum=False, length=32), nullable=False)
     )
     content: str = Field(default="", nullable=False)
-    structured_metadata: dict[str, object] = Field(default_factory=dict, sa_column=Column(JSON, nullable=False))
-
+    structured_metadata: dict[str, object] = Field(
+        default_factory=dict, sa_column=Column(JSON, nullable=False)
+    )

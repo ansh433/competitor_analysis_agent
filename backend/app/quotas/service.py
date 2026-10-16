@@ -36,7 +36,9 @@ def list_quota_status(session: Session, user: User, settings: Settings) -> list[
     ensure_user_quotas(session, user.id)
     session.flush()
     quotas = list(
-        session.exec(select(UserQuota).where(UserQuota.user_id == user.id).order_by(UserQuota.model_tier))
+        session.exec(
+            select(UserQuota).where(UserQuota.user_id == user.id).order_by(UserQuota.model_tier)
+        )
     )
     today = datetime.now(UTC).date()
     statuses: list[TierQuotaStatus] = []
@@ -94,4 +96,3 @@ def _limit_for_tier(tier: ModelTier, settings: Settings) -> int:
     if tier == ModelTier.UPGRADED:
         return settings.upgraded_research_runs_per_day
     return settings.standard_research_runs_per_day
-

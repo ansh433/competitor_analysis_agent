@@ -107,12 +107,16 @@ def persist_research_artifact(
         domain = None
         if candidate.website:
             domain = candidate.website.split("//", 1)[-1].split("/", 1)[0].lower()
-        competitor = session.exec(
-            select(Company).where(
-                Company.workspace_id == context.workspace_id,
-                Company.domain == domain,
-            )
-        ).first() if domain else None
+        competitor = (
+            session.exec(
+                select(Company).where(
+                    Company.workspace_id == context.workspace_id,
+                    Company.domain == domain,
+                )
+            ).first()
+            if domain
+            else None
+        )
         if not competitor:
             competitor = Company(
                 workspace_id=context.workspace_id,
@@ -206,4 +210,3 @@ def _relationship_type(value: str) -> RelationshipType:
         return RelationshipType(value)
     except ValueError:
         return RelationshipType.ADJACENT
-

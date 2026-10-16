@@ -16,8 +16,9 @@ from app.auth.service import (
     request_password_recovery,
     reset_password,
 )
+from app.core.threadpool import ApplicationRoute
 
-router = APIRouter(prefix="/auth", tags=["authentication"])
+router = APIRouter(prefix="/auth", tags=["authentication"], route_class=ApplicationRoute)
 
 
 @router.post("/register", response_model=UserResponse, status_code=201)
@@ -61,4 +62,3 @@ def password_reset_route(
 ) -> MessageResponse:
     reset_password(session, request.token, request.new_password, settings)
     return MessageResponse(message="Password updated")
-

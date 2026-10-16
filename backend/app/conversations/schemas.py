@@ -53,4 +53,3 @@ class ChatMessageResponse(BaseModel):
 
 class ConversationDetailResponse(ConversationResponse):
     messages: list[ChatMessageResponse]
-

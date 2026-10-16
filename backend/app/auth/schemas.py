@@ -40,4 +40,3 @@ class PasswordResetRequest(BaseModel):
 
 class MessageResponse(BaseModel):
     message: str
-

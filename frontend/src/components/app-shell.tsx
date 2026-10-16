@@ -38,7 +38,9 @@ export function AppShell(): React.JSX.Element {
           </span>
           <div>
             <p className="font-display text-xl leading-none">Compass</p>
-            <p className="mt-1 text-xs text-teal-100/70">Company intelligence</p>
+            <p className="mt-1 text-xs text-teal-100/70">
+              Company intelligence
+            </p>
           </div>
         </div>
         <nav aria-label="Primary" className="flex-1 space-y-1 p-4">
@@ -65,8 +67,12 @@ export function AppShell(): React.JSX.Element {
           ) : null}
         </nav>
         <div className="border-t border-white/10 p-4">
-          <p className="truncate px-3 text-sm font-medium">{currentUser?.full_name ?? "Research analyst"}</p>
-          <p className="truncate px-3 pb-3 text-xs text-teal-100/60">{currentUser?.email}</p>
+          <p className="truncate px-3 text-sm font-medium">
+            {currentUser?.full_name ?? "Research analyst"}
+          </p>
+          <p className="truncate px-3 pb-3 text-xs text-teal-100/60">
+            {currentUser?.email}
+          </p>
           <button
             type="button"
             onClick={handleLogout}
@@ -80,7 +86,10 @@ export function AppShell(): React.JSX.Element {
 
       <div className="lg:pl-64">
         <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-[var(--line)] bg-[var(--paper)]/95 px-5 lg:px-10">
-          <Link to="/dashboard" className="flex items-center gap-2 font-display text-lg lg:hidden">
+          <Link
+            to="/dashboard"
+            className="flex items-center gap-2 font-display text-lg lg:hidden"
+          >
             <Compass aria-hidden="true" size={20} /> Compass
           </Link>
           <div className="hidden items-center gap-2 text-sm text-[var(--muted)] lg:flex">
@@ -93,11 +102,26 @@ export function AppShell(): React.JSX.Element {
             Start research
           </Link>
         </header>
-        <main className="px-5 py-8 lg:px-10 lg:py-10">
+        <main className="px-5 py-8 pb-24 lg:px-10 lg:py-10">
           <Outlet />
         </main>
       </div>
+      <nav
+        aria-label="Mobile primary"
+        className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-[var(--line)] bg-[var(--paper)] lg:hidden"
+      >
+        {mainLinks.slice(0, 4).map(({ to, label, icon: Icon }) => (
+          <Link
+            key={to}
+            to={to}
+            className="flex min-h-16 flex-col items-center justify-center gap-1 px-1 text-[0.68rem] text-[var(--muted)]"
+            activeProps={{ className: "text-[var(--navy)]" }}
+          >
+            <Icon aria-hidden="true" size={18} />
+            <span>{label.replace("New ", "")}</span>
+          </Link>
+        ))}
+      </nav>
     </div>
   );
 }
-

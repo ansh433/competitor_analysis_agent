@@ -48,7 +48,9 @@ def delete_own_account(session: Session, user: User, password: str) -> None:
 
 
 def list_users(session: Session, offset: int, limit: int) -> tuple[list[User], int]:
-    users = list(session.exec(select(User).order_by(User.created_at.desc()).offset(offset).limit(limit)))
+    users = list(
+        session.exec(select(User).order_by(User.created_at.desc()).offset(offset).limit(limit))
+    )
     total = session.exec(select(func.count()).select_from(User)).one()
     return users, total
 
@@ -101,4 +103,3 @@ def delete_user_as_admin(session: Session, user_id: UUID, administrator_id: UUID
         raise ResourceNotFoundError("User not found")
     session.delete(user)
     session.commit()
-

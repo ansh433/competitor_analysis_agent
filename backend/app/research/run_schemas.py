@@ -72,4 +72,3 @@ class ComparisonResponse(BaseModel):
     comparison_dimensions: list[str]
     structured_result: dict[str, object]
     generated_at: datetime
-

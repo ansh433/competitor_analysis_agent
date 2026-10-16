@@ -5,4 +5,3 @@
   "javascript": { "formatter": { "quoteStyle": "double" } },
   "files": { "ignore": ["dist", "src/client/generated"] }
 }
-

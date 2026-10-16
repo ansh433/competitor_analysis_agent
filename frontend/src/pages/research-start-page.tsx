@@ -1,12 +1,19 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, ArrowRight, Gauge } from "lucide-react";
-import { FormEvent, useState } from "react";
+import { type FormEvent, useState } from "react";
 
 import { apiRequest } from "../api/client";
-import { ResearchProgress, type ResearchStageView, type ToolExecutionView } from "../components/research-progress";
-import { useQuotaStatus } from "../quotas/use-quota";
+import {
+  ResearchProgress,
+  type ResearchStageView,
+  type ToolExecutionView,
+} from "../components/research-progress";
 import type { ResearchEventPayload } from "../proto/competitor-events";
-import type { EvidenceArtifact, ResearchRunArtifact } from "../research/artifact-types";
+import { useQuotaStatus } from "../quotas/use-quota";
+import type {
+  EvidenceArtifact,
+  ResearchRunArtifact,
+} from "../research/artifact-types";
 import type { WorkspaceSummary } from "../research/types";
 import { postResearchStream } from "../streaming/research-stream";
 
@@ -25,8 +32,17 @@ interface ResearchViewState {
 }
 
 const initialResearchState: ResearchViewState = {
-  stages: [], tools: [], sources: [], streamedText: "", isFinished: false, error: null,
-  evidence: [], gaps: [], comparison: null, conversationId: null, researchRunId: null,
+  stages: [],
+  tools: [],
+  sources: [],
+  streamedText: "",
+  isFinished: false,
+  error: null,
+  evidence: [],
+  gaps: [],
+  comparison: null,
+  conversationId: null,
+  researchRunId: null,
 };
 
 export function ResearchStartPage(): React.JSX.Element {
@@ -34,14 +50,20 @@ export function ResearchStartPage(): React.JSX.Element {
   const queryClient = useQueryClient();
   const workspaces = useQuery({
     queryKey: ["workspaces"],
-    queryFn: () => apiRequest<{ workspaces: WorkspaceSummary[]; total: number }>("/workspaces"),
+    queryFn: () =>
+      apiRequest<{ workspaces: WorkspaceSummary[]; total: number }>(
+        "/workspaces",
+      ),
   });
-  const [research, setResearch] = useState<ResearchViewState>(initialResearchState);
+  const [research, setResearch] =
+    useState<ResearchViewState>(initialResearchState);
   const [isRunning, setIsRunning] = useState(false);
   const standard = quota.data?.tiers.find((tier) => tier.tier === "standard");
   const isDisabled = !quota.isLoading && !quota.data?.can_start_research;
 
-  async function handleStartResearch(event: FormEvent<HTMLFormElement>): Promise<void> {
+  async function handleStartResearch(
+    event: FormEvent<HTMLFormElement>,
+  ): Promise<void> {
     event.preventDefault();
     setResearch(initialResearchState);
     setIsRunning(true);
@@ -49,22 +71,35 @@ export function ResearchStartPage(): React.JSX.Element {
     const company = String(data.get("company") ?? "");
     const objective = String(data.get("objective") ?? "");
     try {
-      const researchRun = await apiRequest<ResearchRunArtifact>("/research-runs", {
-        method: "POST",
-        body: JSON.stringify({
-          workspace_id: String(data.get("workspaceId") ?? ""),
-          company_name_or_url: company,
-          objective,
-          model_tier: String(data.get("modelTier") ?? "standard"),
-        }),
-      });
-      setResearch((current) => ({ ...current, researchRunId: researchRun.id, conversationId: researchRun.conversation_id }));
-      for await (const event of postResearchStream(`/research-runs/${researchRun.id}/stream`, {})) {
+      const researchRun = await apiRequest<ResearchRunArtifact>(
+        "/research-runs",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            workspace_id: String(data.get("workspaceId") ?? ""),
+            company_name_or_url: company,
+            objective,
+            model_tier: String(data.get("modelTier") ?? "standard"),
+          }),
+        },
+      );
+      setResearch((current) => ({
+        ...current,
+        researchRunId: researchRun.id,
+        conversationId: researchRun.conversation_id,
+      }));
+      for await (const event of postResearchStream(
+        `/research-runs/${researchRun.id}/stream`,
+        {},
+      )) {
         setResearch((current) => applyPayload(current, event.payload));
       }
       void queryClient.invalidateQueries({ queryKey: ["quota-status"] });
     } catch (error) {
-      setResearch((current) => ({ ...current, error: error instanceof Error ? error.message : "Research failed" }));
+      setResearch((current) => ({
+        ...current,
+        error: error instanceof Error ? error.message : "Research failed",
+      }));
     } finally {
       setIsRunning(false);
     }
@@ -74,28 +109,51 @@ export function ResearchStartPage(): React.JSX.Element {
     <section className="mx-auto max-w-6xl">
       <div className="grid gap-10 lg:grid-cols-[1fr_20rem]">
         <div>
-          <p className="mb-3 text-sm font-semibold text-[var(--teal)]">New intelligence brief</p>
+          <p className="mb-3 text-sm font-semibold text-[var(--teal)]">
+            New intelligence brief
+          </p>
           <h1 className="max-w-3xl font-display text-4xl leading-tight text-[var(--navy)] md:text-6xl">
             Begin with a company. End with an evidence ledger.
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-8 text-[var(--muted)]">
-            Define the decision you need to make. Compass resolves the company, discovers alternatives,
-            and shows the source behind every material claim.
+            Define the decision you need to make. Compass resolves the company,
+            discovers alternatives, and shows the source behind every material
+            claim.
           </p>
 
           {isDisabled ? (
-            <div role="alert" className="mt-8 flex gap-3 border border-amber-300 bg-amber-50 p-4 text-amber-950">
-              <AlertTriangle className="mt-0.5 shrink-0" aria-hidden="true" size={20} />
-              Daily research allowance exhausted. Existing dossiers remain available until the quota resets.
+            <div
+              role="alert"
+              className="mt-8 flex gap-3 border border-amber-300 bg-amber-50 p-4 text-amber-950"
+            >
+              <AlertTriangle
+                className="mt-0.5 shrink-0"
+                aria-hidden="true"
+                size={20}
+              />
+              Daily research allowance exhausted. Existing dossiers remain
+              available until the quota resets.
             </div>
           ) : null}
 
-          <form onSubmit={handleStartResearch} className="mt-10 space-y-6 border border-[var(--line)] bg-white p-6 md:p-8">
+          <form
+            onSubmit={handleStartResearch}
+            className="mt-10 space-y-6 border border-[var(--line)] bg-white p-6 md:p-8"
+          >
             <label className="block text-sm font-semibold">
               Workspace
-              <select name="workspaceId" required className="form-input" disabled={isDisabled}>
+              <select
+                name="workspaceId"
+                required
+                className="form-input"
+                disabled={isDisabled}
+              >
                 <option value="">Select a workspace</option>
-                {workspaces.data?.workspaces.map((workspace) => <option key={workspace.id} value={workspace.id}>{workspace.name}</option>)}
+                {workspaces.data?.workspaces.map((workspace) => (
+                  <option key={workspace.id} value={workspace.id}>
+                    {workspace.name}
+                  </option>
+                ))}
               </select>
             </label>
             <label className="block text-sm font-semibold">
@@ -110,7 +168,11 @@ export function ResearchStartPage(): React.JSX.Element {
             </label>
             <label className="block text-sm font-semibold">
               Model tier
-              <select name="modelTier" className="form-input" disabled={isDisabled}>
+              <select
+                name="modelTier"
+                className="form-input"
+                disabled={isDisabled}
+              >
                 <option value="standard">Standard research</option>
                 <option value="upgraded">Upgraded model</option>
               </select>
@@ -130,59 +192,153 @@ export function ResearchStartPage(): React.JSX.Element {
               disabled={isDisabled || quota.isLoading || isRunning}
               className="inline-flex min-h-12 items-center gap-2 bg-[var(--navy)] px-5 font-semibold text-white hover:bg-[var(--navy-light)] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {isRunning ? "Researching…" : "Begin research"} <ArrowRight aria-hidden="true" size={18} />
+              {isRunning ? "Researching…" : "Begin research"}{" "}
+              <ArrowRight aria-hidden="true" size={18} />
             </button>
           </form>
         </div>
 
-        <aside aria-label="Research allowance" className="h-fit border-t-4 border-[var(--signal)] bg-[var(--navy)] p-6 text-white lg:mt-24">
+        <aside
+          aria-label="Research allowance"
+          className="h-fit border-t-4 border-[var(--signal)] bg-[var(--navy)] p-6 text-white lg:mt-24"
+        >
           <Gauge aria-hidden="true" className="text-[var(--signal)]" />
           <h2 className="mt-4 font-display text-2xl">Today’s allowance</h2>
           <p className="mt-3 text-sm leading-6 text-teal-50/75">
             Standard runs remaining
           </p>
-          <p className="mt-1 font-display text-5xl">{quota.isLoading ? "—" : standard?.bypassed ? "∞" : (standard?.remaining ?? 0)}</p>
+          <p className="mt-1 font-display text-5xl">
+            {quota.isLoading
+              ? "—"
+              : standard?.bypassed
+                ? "∞"
+                : (standard?.remaining ?? 0)}
+          </p>
           <dl className="mt-6 space-y-3 border-t border-white/15 pt-5 text-sm">
-            <div className="flex justify-between gap-4"><dt className="text-teal-50/65">Source ceiling</dt><dd>{quota.data?.maximum_sources_per_run ?? "—"}</dd></div>
-            <div className="flex justify-between gap-4"><dt className="text-teal-50/65">Gap loops</dt><dd>{quota.data?.maximum_gap_research_loops ?? "—"}</dd></div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-teal-50/65">Source ceiling</dt>
+              <dd>{quota.data?.maximum_sources_per_run ?? "—"}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-teal-50/65">Gap loops</dt>
+              <dd>{quota.data?.maximum_gap_research_loops ?? "—"}</dd>
+            </div>
           </dl>
         </aside>
       </div>
-      {research.error ? <p role="alert" className="mt-6 bg-red-50 p-4 text-red-800">{research.error}</p> : null}
-      {isRunning || research.stages.length > 0 ? <ResearchProgress {...research} /> : null}
+      {research.error ? (
+        <p role="alert" className="mt-6 bg-red-50 p-4 text-red-800">
+          {research.error}
+        </p>
+      ) : null}
+      {isRunning || research.stages.length > 0 ? (
+        <ResearchProgress {...research} />
+      ) : null}
     </section>
   );
 }
 
-function applyPayload(state: ResearchViewState, payload: ResearchEventPayload): ResearchViewState {
-  if (payload.kind === "conversation_identified") return { ...state, conversationId: payload.conversationId };
-  if (payload.kind === "research_run_identified") return { ...state, researchRunId: payload.researchRunId };
+function applyPayload(
+  state: ResearchViewState,
+  payload: ResearchEventPayload,
+): ResearchViewState {
+  if (payload.kind === "conversation_identified")
+    return { ...state, conversationId: payload.conversationId };
+  if (payload.kind === "research_run_identified")
+    return { ...state, researchRunId: payload.researchRunId };
   if (payload.kind === "graph_stage_started") {
-    return { ...state, stages: [...state.stages, { name: payload.stageName, detail: payload.detail, status: "active" }] };
+    return {
+      ...state,
+      stages: [
+        ...state.stages,
+        { name: payload.stageName, detail: payload.detail, status: "active" },
+      ],
+    };
   }
   if (payload.kind === "graph_stage_ended") {
-    return { ...state, stages: state.stages.map((stage) => stage.name === payload.stageName ? { ...stage, detail: payload.detail, status: "complete" } : stage) };
+    return {
+      ...state,
+      stages: state.stages.map((stage) =>
+        stage.name === payload.stageName
+          ? { ...stage, detail: payload.detail, status: "complete" }
+          : stage,
+      ),
+    };
   }
   if (payload.kind === "tool_started") {
-    return { ...state, tools: [...state.tools, { executionId: payload.executionId, name: payload.toolName, status: "active" }] };
+    return {
+      ...state,
+      tools: [
+        ...state.tools,
+        {
+          executionId: payload.executionId,
+          name: payload.toolName,
+          status: "active",
+        },
+      ],
+    };
   }
   if (payload.kind === "tool_ended") {
-    return { ...state, tools: state.tools.map((tool) => tool.executionId === payload.executionId ? { ...tool, status: payload.success ? "complete" : "failed", executionTimeMs: payload.executionTimeMs } : tool) };
+    return {
+      ...state,
+      tools: state.tools.map((tool) =>
+        tool.executionId === payload.executionId
+          ? {
+              ...tool,
+              status: payload.success ? "complete" : "failed",
+              executionTimeMs: payload.executionTimeMs,
+            }
+          : tool,
+      ),
+    };
   }
   if (payload.kind === "source_discovered") {
-    return { ...state, sources: [...state.sources, { sourceId: payload.sourceId, title: payload.title, publisher: payload.publisher }] };
+    return {
+      ...state,
+      sources: [
+        ...state.sources,
+        {
+          sourceId: payload.sourceId,
+          title: payload.title,
+          publisher: payload.publisher,
+        },
+      ],
+    };
   }
   if (payload.kind === "evidence_accepted") {
-    return { ...state, evidence: [...state.evidence, { id: payload.evidenceId, claim: payload.claim, source_url: payload.sourceUrl, confidence: payload.confidence }] };
+    return {
+      ...state,
+      evidence: [
+        ...state.evidence,
+        {
+          id: payload.evidenceId,
+          claim: payload.claim,
+          source_url: payload.sourceUrl,
+          confidence: payload.confidence,
+        },
+      ],
+    };
   }
   if (payload.kind === "research_gap_found") {
-    return { ...state, gaps: [...state.gaps, { gapId: payload.gapId, question: payload.question, reportSection: payload.reportSection }] };
+    return {
+      ...state,
+      gaps: [
+        ...state.gaps,
+        {
+          gapId: payload.gapId,
+          question: payload.question,
+          reportSection: payload.reportSection,
+        },
+      ],
+    };
   }
-  if (payload.kind === "comparison_artifact") return { ...state, comparison: payload.structuredResult };
-  if (payload.kind === "text_chunk") return { ...state, streamedText: state.streamedText + payload.text };
-  if (payload.kind === "final_report_artifact") return { ...state, streamedText: payload.reportMarkdown };
+  if (payload.kind === "comparison_artifact")
+    return { ...state, comparison: payload.structuredResult };
+  if (payload.kind === "text_chunk")
+    return { ...state, streamedText: state.streamedText + payload.text };
+  if (payload.kind === "final_report_artifact")
+    return { ...state, streamedText: payload.reportMarkdown };
   if (payload.kind === "error") return { ...state, error: payload.message };
   if (payload.kind === "finished") return { ...state, isFinished: true };
   return state;
 }
-

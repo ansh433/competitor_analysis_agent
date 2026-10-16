@@ -132,4 +132,3 @@ def _bytes_field(field_number: int, value: bytes) -> bytes:
 
 def _string_field(field_number: int, value: str) -> bytes:
     return _bytes_field(field_number, value.encode("utf-8"))
-

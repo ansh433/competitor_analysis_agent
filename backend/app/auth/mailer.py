@@ -23,4 +23,3 @@ def send_password_reset_email(recipient: str, reset_url: str, settings: Settings
         if settings.smtp_user and settings.smtp_password:
             smtp.login(settings.smtp_user, settings.smtp_password.get_secret_value())
         smtp.send_message(message)
-

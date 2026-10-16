@@ -53,8 +53,7 @@ from app.research_tools.reporting import (
     VerifyReportClaimsInput,
     verify_report_claims,
 )
-from app.streaming.events import ToolEnded, ToolStarted
-from app.streaming.events import GraphStageEnded, GraphStageStarted
+from app.streaming.events import GraphStageEnded, GraphStageStarted, ToolEnded, ToolStarted
 
 ToolInput = TypeVar("ToolInput", bound=BaseModel)
 ToolOutput = TypeVar("ToolOutput", bound=BaseModel)
@@ -176,9 +175,7 @@ def research_news_and_events(
     )
     timeline = run_tool(
         "build_company_timeline",
-        BuildCompanyTimelineInput(
-            company=state["canonical_company"], news_sources=news.sources
-        ),
+        BuildCompanyTimelineInput(company=state["canonical_company"], news_sources=news.sources),
         build_company_timeline,
         runtime.context,
     )
@@ -214,9 +211,7 @@ def discover_competitor_set(
     )
     discovery = run_tool(
         "discover_competitors",
-        DiscoverCompetitorsInput(
-            company=state["canonical_company"], profile=profile
-        ),
+        DiscoverCompetitorsInput(company=state["canonical_company"], profile=profile),
         discover_competitors,
         runtime.context,
     )
@@ -283,7 +278,9 @@ def research_discovered_competitors(
     return {"competitor_research": researched}
 
 
-def build_comparison(state: ResearchState, runtime: Runtime[ResearchGraphContext]) -> dict[str, object]:
+def build_comparison(
+    state: ResearchState, runtime: Runtime[ResearchGraphContext]
+) -> dict[str, object]:
     comparison = run_tool(
         "build_comparison_matrix",
         BuildComparisonMatrixInput(
@@ -454,11 +451,14 @@ def synthesize_dossier(
         classification: str,
         matching_text: str,
     ) -> str:
-        match = next((item for item in evidence if matching_text.lower() in item.claim.lower()), None)
+        match = next(
+            (item for item in evidence if matching_text.lower() in item.claim.lower()), None
+        )
         evidence_ids = [match.id] if match else []
         normalized_classification = (
             classification
-            if classification in {
+            if classification
+            in {
                 "sourced_fact",
                 "calculated_result",
                 "analyst_inference",
@@ -475,9 +475,7 @@ def synthesize_dossier(
             )
         )
         label = normalized_classification.replace("_", " ").title()
-        citation = (
-            f" [Evidence {match.id.hex[:8]}](/api/v1/evidence/{match.id})" if match else ""
-        )
+        citation = f" [Evidence {match.id.hex[:8]}](/api/v1/evidence/{match.id})" if match else ""
         return f"- **{label}:** {claim}{citation}"
 
     profile = state["company_profile"]
@@ -485,7 +483,9 @@ def synthesize_dossier(
     competitor_lines = [
         record_claim(
             f"{candidate.name}: {candidate.reason}",
-            "Direct competitors" if candidate.proximity == "direct" else "Indirect competitors and substitutes",
+            "Direct competitors"
+            if candidate.proximity == "direct"
+            else "Indirect competitors and substitutes",
             "analyst_inference",
             candidate.name,
         )
@@ -499,7 +499,14 @@ def synthesize_dossier(
         ("Business model", profile.business_model),
     ):
         value = field.value or "Unavailable in reviewed sources"
-        profile_lines.append(record_claim(f"{label}: {value}", "Canonical company profile", field.classification, label.lower()))
+        profile_lines.append(
+            record_claim(
+                f"{label}: {value}",
+                "Canonical company profile",
+                field.classification,
+                label.lower(),
+            )
+        )
     product_claim = record_claim(
         ", ".join(profile.products) or "Product details unavailable",
         "Product and service overview",
@@ -525,7 +532,10 @@ def synthesize_dossier(
         for event in state["company_timeline"].events
     ]
 
-    matrix_lines = ["| Dimension | " + " | ".join(state["comparison_matrix"].company_names) + " |", "|---|" + "---|" * len(state["comparison_matrix"].company_names)]
+    matrix_lines = [
+        "| Dimension | " + " | ".join(state["comparison_matrix"].company_names) + " |",
+        "|---|" + "---|" * len(state["comparison_matrix"].company_names),
+    ]
     for row in state["comparison_matrix"].rows:
         values: list[str] = []
         for cell in row.cells:
@@ -568,30 +578,73 @@ def synthesize_dossier(
         )
         for signal in signals
     ]
-    gap_lines = [f"- **{gap.priority.title()}:** {gap.question} — {gap.reason}" for gap in state.get("research_gaps", [])]
+    gap_lines = [
+        f"- **{gap.priority.title()}:** {gap.question} — {gap.reason}"
+        for gap in state.get("research_gaps", [])
+    ]
     evidence_lines = [
-        f"- <a id=\"evidence-{item.id}\"></a> **{item.fact_classification.replace('_', ' ').title()}** — {item.claim}. [Source]({item.source_url}) — `{item.id}`"
+        f'- <a id="evidence-{item.id}"></a> **{item.fact_classification.replace("_", " ").title()}** — {item.claim}. [Evidence record](/api/v1/evidence/{item.id}) · [Source]({item.source_url})'
         for item in evidence
     ]
-    direct = [line for candidate, line in zip(state.get("competitors", []), competitor_lines, strict=True) if candidate.proximity == "direct"]
-    indirect = [line for candidate, line in zip(state.get("competitors", []), competitor_lines, strict=True) if candidate.proximity != "direct"]
+    direct = [
+        line
+        for candidate, line in zip(state.get("competitors", []), competitor_lines, strict=True)
+        if candidate.proximity == "direct"
+    ]
+    indirect = [
+        line
+        for candidate, line in zip(state.get("competitors", []), competitor_lines, strict=True)
+        if candidate.proximity != "direct"
+    ]
     report = "\n\n".join(
         [
             f"# {company.canonical_name} competitor intelligence dossier",
             f"## 1. Executive summary\n\n**Analyst inference:** This dossier evaluates {company.canonical_name} for the stated objective using {len(evidence)} evidence records. Material facts below link to the evidence ledger.",
             "## 2. Canonical company profile\n\n" + "\n".join(profile_lines),
             "## 3. Product and service overview\n\n" + product_claim,
-            "## 4. Target customer and positioning analysis\n\n" + record_claim(profile.positioning.value or "Positioning unavailable", "Target customer and positioning analysis", profile.positioning.classification, "positioning"),
-            "## 5. Direct competitors\n\n" + ("\n".join(direct) or "- **Unavailable information:** No direct competitor was sufficiently supported."),
-            "## 6. Indirect competitors and substitutes\n\n" + ("\n".join(indirect) or "- **Unavailable information:** No indirect alternative was sufficiently supported."),
+            "## 4. Target customer and positioning analysis\n\n"
+            + record_claim(
+                profile.positioning.value or "Positioning unavailable",
+                "Target customer and positioning analysis",
+                profile.positioning.classification,
+                "positioning",
+            ),
+            "## 5. Direct competitors\n\n"
+            + (
+                "\n".join(direct)
+                or "- **Unavailable information:** No direct competitor was sufficiently supported."
+            ),
+            "## 6. Indirect competitors and substitutes\n\n"
+            + (
+                "\n".join(indirect)
+                or "- **Unavailable information:** No indirect alternative was sufficiently supported."
+            ),
             "## 7. Feature comparison matrix\n\n" + "\n".join(matrix_lines),
-            "## 8. Pricing/business-model comparison\n\n" + ("\n".join(pricing_lines) or "- **Unavailable information:** No public prices were located."),
-            "## 9. Strengths and weaknesses\n\n" + ("\n".join(risk_lines) or "- No supported risk pattern was identified."),
+            "## 8. Pricing/business-model comparison\n\n"
+            + (
+                "\n".join(pricing_lines)
+                or "- **Unavailable information:** No public prices were located."
+            ),
+            "## 9. Strengths and weaknesses\n\n"
+            + ("\n".join(risk_lines) or "- No supported risk pattern was identified."),
             "## 10. Market-positioning observations\n\n**Analyst inference:** Positioning observations are derived from the sourced profile and normalized comparison, not represented as company-stated facts.",
-            "## 11. Material news/event timeline\n\n" + ("\n".join(timeline_lines) or "- **Unavailable information:** No material dated events were located."),
-            "## 12. Risks and contradictions\n\n" + ("\n".join(risk_lines) or "- No verified contradiction was identified in the reviewed evidence."),
-            "## 13. Research gaps\n\n" + ("\n".join(gap_lines) or "- No high-priority gap remains."),
-            "## 14. Recommended follow-up questions\n\n" + ("\n".join(f"- {gap.question}" for gap in state.get("research_gaps", [])) or "- Revalidate material claims when new primary sources appear."),
+            "## 11. Material news/event timeline\n\n"
+            + (
+                "\n".join(timeline_lines)
+                or "- **Unavailable information:** No material dated events were located."
+            ),
+            "## 12. Risks and contradictions\n\n"
+            + (
+                "\n".join(risk_lines)
+                or "- No verified contradiction was identified in the reviewed evidence."
+            ),
+            "## 13. Research gaps\n\n"
+            + ("\n".join(gap_lines) or "- No high-priority gap remains."),
+            "## 14. Recommended follow-up questions\n\n"
+            + (
+                "\n".join(f"- {gap.question}" for gap in state.get("research_gaps", []))
+                or "- Revalidate material claims when new primary sources appear."
+            ),
             "## 15. Evidence ledger\n\n" + "\n".join(evidence_lines),
             f"## 16. Coverage and confidence\n\n- **Calculated result:** Coverage score {state.get('coverage_score', 0.0):.0%}.\n- **Calculated result:** Confidence score {(sum(item.confidence for item in evidence) / len(evidence) if evidence else 0.0):.0%}.",
         ]
@@ -634,7 +687,9 @@ def verify_claims_and_citations_with_context(
                 ClaimVerification(
                     claim=item.claim,
                     supported=item.supported,
-                    evidence_urls=[f"/api/v1/evidence/{evidence_id}" for evidence_id in item.evidence_ids],
+                    evidence_urls=[
+                        f"/api/v1/evidence/{evidence_id}" for evidence_id in item.evidence_ids
+                    ],
                     reason=item.reason,
                 )
                 for item in result.claims
@@ -650,7 +705,9 @@ def revise_dossier(state: ResearchState) -> dict[str, object]:
     revised_claims: list[MaterialReportClaim] = []
     for claim in state.get("draft_claims", []):
         if claim.claim in unsupported:
-            report = report.replace(claim.claim, "Unavailable information after citation verification")
+            report = report.replace(
+                claim.claim, "Unavailable information after citation verification"
+            )
             revised_claims.append(
                 MaterialReportClaim(
                     claim="Unavailable information after citation verification",
@@ -686,20 +743,53 @@ def build_competitor_research_graph():
     builder = StateGraph(ResearchState, context_schema=ResearchGraphContext)
     builder.add_node("validate_request", stage_node("validate_request", 0, validate_request, False))
     builder.add_node("resolve_company", stage_node("resolve_company", 1, resolve_company, True))
-    builder.add_node("create_research_plan", stage_node("create_research_plan", 2, create_research_plan, False))
-    builder.add_node("research_official_sources", stage_node("research_official_sources", 3, research_official_sources, True))
-    builder.add_node("research_product_and_pricing", stage_node("research_product_and_pricing", 4, research_product_and_pricing, True))
-    builder.add_node("research_news_and_events", stage_node("research_news_and_events", 5, research_news_and_events, True))
-    builder.add_node("discover_competitors", stage_node("discover_competitors", 6, discover_competitor_set, True))
-    builder.add_node("normalize_evidence", stage_node("normalize_evidence", 7, normalize_evidence, False))
-    builder.add_node("research_discovered_competitors", stage_node("research_discovered_competitors", 8, research_discovered_competitors, True))
+    builder.add_node(
+        "create_research_plan", stage_node("create_research_plan", 2, create_research_plan, False)
+    )
+    builder.add_node(
+        "research_official_sources",
+        stage_node("research_official_sources", 3, research_official_sources, True),
+    )
+    builder.add_node(
+        "research_product_and_pricing",
+        stage_node("research_product_and_pricing", 4, research_product_and_pricing, True),
+    )
+    builder.add_node(
+        "research_news_and_events",
+        stage_node("research_news_and_events", 5, research_news_and_events, True),
+    )
+    builder.add_node(
+        "discover_competitors", stage_node("discover_competitors", 6, discover_competitor_set, True)
+    )
+    builder.add_node(
+        "normalize_evidence", stage_node("normalize_evidence", 7, normalize_evidence, False)
+    )
+    builder.add_node(
+        "research_discovered_competitors",
+        stage_node("research_discovered_competitors", 8, research_discovered_competitors, True),
+    )
     builder.add_node("build_comparison", stage_node("build_comparison", 9, build_comparison, True))
-    builder.add_node("identify_evidence_gaps", stage_node("identify_evidence_gaps", 10, identify_evidence_gaps, True))
-    builder.add_node("targeted_gap_research", stage_node("targeted_gap_research", 11, targeted_gap_research, True))
-    builder.add_node("synthesize_dossier", stage_node("synthesize_dossier", 12, synthesize_dossier, True))
-    builder.add_node("verify_claims_and_citations", stage_node("verify_claims_and_citations", 13, verify_claims_and_citations_with_context, True))
+    builder.add_node(
+        "identify_evidence_gaps",
+        stage_node("identify_evidence_gaps", 10, identify_evidence_gaps, True),
+    )
+    builder.add_node(
+        "targeted_gap_research",
+        stage_node("targeted_gap_research", 11, targeted_gap_research, True),
+    )
+    builder.add_node(
+        "synthesize_dossier", stage_node("synthesize_dossier", 12, synthesize_dossier, True)
+    )
+    builder.add_node(
+        "verify_claims_and_citations",
+        stage_node(
+            "verify_claims_and_citations", 13, verify_claims_and_citations_with_context, True
+        ),
+    )
     builder.add_node("revise_dossier", stage_node("revise_dossier", 14, revise_dossier, False))
-    builder.add_node("persist_artifacts", stage_node("persist_artifacts", 15, persist_artifacts, False))
+    builder.add_node(
+        "persist_artifacts", stage_node("persist_artifacts", 15, persist_artifacts, False)
+    )
     builder.add_edge(START, "validate_request")
     builder.add_edge("validate_request", "resolve_company")
     builder.add_edge("resolve_company", "create_research_plan")
@@ -805,4 +895,3 @@ def run_tool(
         )
     )
     return output
-

@@ -48,4 +48,3 @@ class UserDetailResponse(BaseModel):
 class UserListResponse(BaseModel):
     users: list[UserDetailResponse]
     total: int
-

@@ -5,7 +5,6 @@ from pathlib import Path
 import pytest
 from alembic import command
 from alembic.config import Config
-from fastapi.testclient import TestClient
 
 os.environ.setdefault("SECRET_KEY", "integration-test-secret-key-that-is-long-enough")
 os.environ.setdefault("DATABASE_URL", "sqlite:////tmp/competitor-intelligence-bootstrap.db")
@@ -17,6 +16,7 @@ os.environ.setdefault("PROVIDER_MODE", "deterministic")
 from app.core.config import Settings, get_settings  # noqa: E402
 from app.core.db import get_engine  # noqa: E402
 from app.main import create_app  # noqa: E402
+from tests.client import IntegrationClient  # noqa: E402
 
 
 @pytest.fixture(scope="session")
@@ -39,15 +39,15 @@ def test_settings(tmp_path_factory: pytest.TempPathFactory) -> Settings:
 
 
 @pytest.fixture(scope="session")
-def client(test_settings: Settings) -> Generator[TestClient, None, None]:
+def client(test_settings: Settings) -> Generator[IntegrationClient, None, None]:
     application = create_app(test_settings)
     application.dependency_overrides[get_settings] = lambda: test_settings
-    with TestClient(application) as test_client:
-        yield test_client
+    test_client = IntegrationClient(application)
+    yield test_client
 
 
 @pytest.fixture
-def registered_user(client: TestClient) -> dict[str, str]:
+def registered_user(client: IntegrationClient) -> dict[str, str]:
     credentials = {
         "email": "analyst@example.com",
         "password": "correct horse research battery",
@@ -61,7 +61,7 @@ def registered_user(client: TestClient) -> dict[str, str]:
     return credentials
 
 
-def authorization_headers(client: TestClient, credentials: dict[str, str]) -> dict[str, str]:
+def authorization_headers(client: IntegrationClient, credentials: dict[str, str]) -> dict[str, str]:
     response = client.post(
         "/api/v1/auth/login",
         json={"email": credentials["email"], "password": credentials["password"]},
@@ -71,6 +71,5 @@ def authorization_headers(client: TestClient, credentials: dict[str, str]) -> di
 
 
 @pytest.fixture
-def auth_headers(client: TestClient, registered_user: dict[str, str]) -> dict[str, str]:
+def auth_headers(client: IntegrationClient, registered_user: dict[str, str]) -> dict[str, str]:
     return authorization_headers(client, registered_user)
-

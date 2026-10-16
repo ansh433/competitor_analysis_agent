@@ -1,2 +1,1 @@
 """Competitor intelligence API package."""
-

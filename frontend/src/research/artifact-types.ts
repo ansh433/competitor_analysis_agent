@@ -39,4 +39,3 @@ export interface ComparisonArtifactData {
   structured_result: Record<string, unknown>;
   generated_at: string;
 }
-

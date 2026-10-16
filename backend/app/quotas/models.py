@@ -2,8 +2,9 @@ from datetime import date
 from enum import StrEnum
 from uuid import UUID, uuid4
 
-from sqlalchemy import CheckConstraint, Column, Enum as SAEnum, ForeignKey, UniqueConstraint
-from sqlmodel import Field, SQLModel
+from sqlalchemy import CheckConstraint, Column, ForeignKey, UniqueConstraint
+from sqlalchemy import Enum as SAEnum
+from sqlmodel import Field
 
 from app.users.models import TimestampedModel
 
@@ -29,4 +30,3 @@ class UserQuota(TimestampedModel, table=True):
     )
     daily_usage: int = Field(default=0, nullable=False)
     last_reset_date: date = Field(default_factory=date.today, nullable=False)
-

@@ -3,13 +3,15 @@ from enum import StrEnum
 from uuid import UUID, uuid4
 
 from sqlalchemy import (
+    JSON,
     CheckConstraint,
     Column,
-    Enum as SAEnum,
     ForeignKey,
     Index,
-    JSON,
     UniqueConstraint,
+)
+from sqlalchemy import (
+    Enum as SAEnum,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field
@@ -218,7 +220,9 @@ class CompetitorRelationship(TimestampedModel, table=True):
 
 class CompanyComparison(TimestampedModel, table=True):
     __tablename__ = "company_comparisons"
-    __table_args__ = (Index("ix_company_comparisons_workspace_generated", "workspace_id", "generated_at"),)
+    __table_args__ = (
+        Index("ix_company_comparisons_workspace_generated", "workspace_id", "generated_at"),
+    )
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     workspace_id: UUID = Field(
@@ -230,7 +234,9 @@ class CompanyComparison(TimestampedModel, table=True):
         default=None,
         sa_column=Column(ForeignKey("research_runs.id", ondelete="SET NULL"), nullable=True),
     )
-    company_ids: list[str] = Field(default_factory=list, sa_column=Column(JSON_DOCUMENT, nullable=False))
+    company_ids: list[str] = Field(
+        default_factory=list, sa_column=Column(JSON_DOCUMENT, nullable=False)
+    )
     comparison_dimensions: list[str] = Field(
         default_factory=list, sa_column=Column(JSON_DOCUMENT, nullable=False)
     )
@@ -261,4 +267,3 @@ class TrackedCompany(TimestampedModel, table=True):
     monitoring_preferences: dict[str, object] | None = Field(
         default=None, sa_column=Column(JSON_DOCUMENT, nullable=True)
     )
-

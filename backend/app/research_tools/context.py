@@ -12,4 +12,3 @@ class ResearchToolContext:
     research_run_id: UUID
     providers: ResearchProviders
     maximum_sources: int
-

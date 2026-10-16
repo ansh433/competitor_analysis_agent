@@ -1,11 +1,12 @@
 import pytest
-from fastapi.testclient import TestClient
+
+from tests.client import IntegrationClient
 
 pytestmark = pytest.mark.integration
 
 
 def test_sse_stream_contains_typed_protobuf_sequence_and_persists_timeline(
-    client: TestClient,
+    client: IntegrationClient,
     auth_headers: dict[str, str],
 ) -> None:
     conversation = client.post(
@@ -45,9 +46,6 @@ def test_sse_stream_contains_typed_protobuf_sequence_and_persists_timeline(
     assert timeline.status_code == 200
     assert [event["event_type"] for event in timeline.json()["events"]] == event_names
 
-    detail = client.get(
-        f"/api/v1/conversations/{conversation['id']}", headers=auth_headers
-    ).json()
+    detail = client.get(f"/api/v1/conversations/{conversation['id']}", headers=auth_headers).json()
     assert [message["sender"] for message in detail["messages"]] == ["user", "assistant"]
     assert len(detail["messages"][1]["structured_metadata"]["stream_event_ids"]) == 5
-

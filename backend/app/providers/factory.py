@@ -32,4 +32,3 @@ def build_research_providers(settings: Settings, upgraded_model: bool = False) -
             model_name=model_name,
         ),
     )
-

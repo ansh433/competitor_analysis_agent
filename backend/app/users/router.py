@@ -4,6 +4,7 @@ from fastapi import APIRouter, Query, Response
 
 from app.api.deps import CurrentUser, SessionDependency, Superuser
 from app.auth.schemas import MessageResponse
+from app.core.threadpool import ApplicationRoute
 from app.users.schemas import (
     AdminCreateUserRequest,
     AdminUpdateUserRequest,
@@ -23,7 +24,7 @@ from app.users.service import (
     update_user_as_admin,
 )
 
-router = APIRouter(prefix="/users", tags=["users"])
+router = APIRouter(prefix="/users", tags=["users"], route_class=ApplicationRoute)
 
 
 @router.patch("/me", response_model=UserDetailResponse, status_code=200)
@@ -96,4 +97,3 @@ def delete_user_route(
 ) -> Response:
     delete_user_as_admin(session, user_id, administrator.id)
     return Response(status_code=204)
-

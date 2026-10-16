@@ -17,4 +17,3 @@ class QuotaStatusResponse(BaseModel):
     maximum_sources_per_run: int
     maximum_gap_research_loops: int
     can_start_research: bool
-

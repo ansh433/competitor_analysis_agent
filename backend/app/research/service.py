@@ -47,7 +47,9 @@ def list_workspaces(
         )
     )
     total = session.exec(
-        select(func.count()).select_from(ResearchWorkspace).where(ResearchWorkspace.user_id == user_id)
+        select(func.count())
+        .select_from(ResearchWorkspace)
+        .where(ResearchWorkspace.user_id == user_id)
     ).one()
     return workspaces, total
 
@@ -96,9 +98,12 @@ def create_company(
 ) -> Company:
     website = str(request.website).rstrip("/") if request.website else None
     domain = urlsplit(website).hostname.lower() if website and urlsplit(website).hostname else None
-    if domain and session.exec(
-        select(Company).where(Company.workspace_id == workspace.id, Company.domain == domain)
-    ).first():
+    if (
+        domain
+        and session.exec(
+            select(Company).where(Company.workspace_id == workspace.id, Company.domain == domain)
+        ).first()
+    ):
         raise ResourceConflictError("This company domain already exists in the workspace")
     company = Company(
         workspace_id=workspace.id,
@@ -169,7 +174,9 @@ def update_company(
     if "website" in request.model_fields_set:
         website = str(request.website).rstrip("/") if request.website else None
         company.website = website
-        company.domain = urlsplit(website).hostname.lower() if website and urlsplit(website).hostname else None
+        company.domain = (
+            urlsplit(website).hostname.lower() if website and urlsplit(website).hostname else None
+        )
     company.updated_at = utc_now()
     session.add(company)
     session.commit()
@@ -233,4 +240,3 @@ def untrack_company(session: Session, user_id: UUID, company: Company) -> None:
         raise ResourceNotFoundError("Tracked company not found")
     session.delete(tracked)
     session.commit()
-

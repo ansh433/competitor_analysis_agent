@@ -80,4 +80,3 @@ def verify_report_claims(
         claims=verified,
         unsupported_claims=unsupported,
     )
-

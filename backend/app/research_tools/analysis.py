@@ -5,11 +5,11 @@ from urllib.parse import urlsplit
 from pydantic import BaseModel, Field
 
 from app.research_tools.company import (
+    UNTRUSTED_EVIDENCE_SYSTEM_PROMPT,
     CompanyProfile,
     ProductAndPricingProfile,
     ResolvedCompanyIdentity,
     SourceRecord,
-    UNTRUSTED_EVIDENCE_SYSTEM_PROMPT,
 )
 from app.research_tools.competitors import CompetitorResearch
 from app.research_tools.context import ResearchToolContext
@@ -247,4 +247,3 @@ def targeted_additional_research(
             for hit in response.results
         ]
     )
-

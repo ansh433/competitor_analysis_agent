@@ -5,6 +5,7 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
 
+from app.agent.context_engine import PackedConversationContext
 from app.research_tools.analysis import (
     CompanyTimeline,
     ComparisonMatrix,
@@ -58,6 +59,7 @@ class ResearchState(TypedDict):
     company_input: str
     loop_count: int
     maximum_gap_loops: int
+    conversation_context: NotRequired[PackedConversationContext]
     canonical_company: NotRequired[ResolvedCompanyIdentity]
     research_plan: NotRequired[list[str]]
     sources: NotRequired[list[SourceRecord]]
@@ -84,4 +86,3 @@ class ResearchState(TypedDict):
 class ResearchGraphContext:
     tools: ResearchToolContext
     emit: Callable[[StreamPayload], None]
-

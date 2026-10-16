@@ -37,4 +37,3 @@ class GoogleGeminiModelProvider:
         if isinstance(response, BaseModel):
             return cast(ResponseModel, response)
         return schema.model_validate(response)
-

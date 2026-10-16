@@ -1,12 +1,13 @@
 import os
 
 import pytest
-from fastapi.testclient import TestClient
+
+from tests.client import IntegrationClient
 
 pytestmark = pytest.mark.integration
 
 
-def login_headers(client: TestClient, credentials: dict[str, str]) -> dict[str, str]:
+def login_headers(client: IntegrationClient, credentials: dict[str, str]) -> dict[str, str]:
     response = client.post(
         "/api/v1/auth/login",
         json={"email": credentials["email"], "password": credentials["password"]},
@@ -16,7 +17,7 @@ def login_headers(client: TestClient, credentials: dict[str, str]) -> dict[str, 
 
 
 def test_conversation_persistence_rename_and_delete(
-    client: TestClient,
+    client: IntegrationClient,
     auth_headers: dict[str, str],
 ) -> None:
     created = client.post(
@@ -48,11 +49,14 @@ def test_conversation_persistence_rename_and_delete(
 
     deleted = client.delete(f"/api/v1/conversations/{conversation_id}", headers=auth_headers)
     assert deleted.status_code == 204
-    assert client.get(f"/api/v1/conversations/{conversation_id}", headers=auth_headers).status_code == 404
+    assert (
+        client.get(f"/api/v1/conversations/{conversation_id}", headers=auth_headers).status_code
+        == 404
+    )
 
 
 def test_conversations_are_tenant_isolated(
-    client: TestClient,
+    client: IntegrationClient,
     auth_headers: dict[str, str],
 ) -> None:
     created = client.post(
@@ -70,21 +74,26 @@ def test_conversations_are_tenant_isolated(
     assert client.post("/api/v1/auth/register", json=other_credentials).status_code == 201
     other_headers = login_headers(client, other_credentials)
 
-    assert client.get(
-        f"/api/v1/conversations/{conversation_id}", headers=other_headers
-    ).status_code == 404
-    assert client.patch(
-        f"/api/v1/conversations/{conversation_id}",
-        headers=other_headers,
-        json={"title": "Stolen"},
-    ).status_code == 404
-    assert client.delete(
-        f"/api/v1/conversations/{conversation_id}", headers=other_headers
-    ).status_code == 404
+    assert (
+        client.get(f"/api/v1/conversations/{conversation_id}", headers=other_headers).status_code
+        == 404
+    )
+    assert (
+        client.patch(
+            f"/api/v1/conversations/{conversation_id}",
+            headers=other_headers,
+            json={"title": "Stolen"},
+        ).status_code
+        == 404
+    )
+    assert (
+        client.delete(f"/api/v1/conversations/{conversation_id}", headers=other_headers).status_code
+        == 404
+    )
 
 
 def test_conversation_branch_copies_history_through_selected_message(
-    client: TestClient,
+    client: IntegrationClient,
     auth_headers: dict[str, str],
 ) -> None:
     conversation = client.post(
@@ -113,4 +122,3 @@ def test_conversation_branch_copies_history_through_selected_message(
     assert branch.json()["parent_conversation_id"] == conversation["id"]
     assert branch.json()["branch_origin_message_id"] == first["id"]
     assert [message["content"] for message in branch.json()["messages"]] == ["First hypothesis"]
-

@@ -36,7 +36,9 @@ class SafeHttpPageFetcher:
                         if response.status_code in {301, 302, 303, 307, 308}:
                             location = response.headers.get("location")
                             if not location:
-                                raise ExternalProviderError("Source redirect did not include a location")
+                                raise ExternalProviderError(
+                                    "Source redirect did not include a location"
+                                )
                             current_url = urljoin(current_url, location)
                             continue
                         response.raise_for_status()
@@ -45,7 +47,9 @@ class SafeHttpPageFetcher:
                             raise ExternalProviderError("Source content type is not supported")
                         declared_length = response.headers.get("content-length")
                         if declared_length and int(declared_length) > self._maximum_bytes:
-                            raise ExternalProviderError("Source content exceeds the configured size limit")
+                            raise ExternalProviderError(
+                                "Source content exceeds the configured size limit"
+                            )
                         body = bytearray()
                         for chunk in response.iter_bytes():
                             body.extend(chunk)
@@ -101,7 +105,9 @@ def clean_retrieved_page(
         title = soup.title.get_text(" ", strip=True) if soup.title else parsed.hostname or "Source"
         container = soup.find("main") or soup.find("article") or soup.body or soup
         content = "\n".join(
-            line for line in (part.strip() for part in container.get_text("\n").splitlines()) if line
+            line
+            for line in (part.strip() for part in container.get_text("\n").splitlines())
+            if line
         )
     return RetrievedPage(
         url=url,
@@ -111,4 +117,3 @@ def clean_retrieved_page(
         publisher=parsed.hostname or "unknown",
         content_type=content_type,
     )
-

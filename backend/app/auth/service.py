@@ -65,4 +65,3 @@ def reset_password(session: Session, token: str, new_password: str, settings: Se
     user.hashed_password = hash_password(new_password)
     session.add(user)
     session.commit()
-

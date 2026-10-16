@@ -6,8 +6,8 @@ from fastapi.responses import StreamingResponse
 from app.api.deps import CurrentUser, SessionDependency
 from app.conversations.models import MessageSender
 from app.conversations.schemas import (
-    ChatMessageResponse,
     BranchConversationRequest,
+    ChatMessageResponse,
     ConversationDetailResponse,
     ConversationListResponse,
     ConversationResponse,
@@ -25,10 +25,11 @@ from app.conversations.service import (
     list_messages,
     rename_conversation,
 )
+from app.core.threadpool import ApplicationRoute
 from app.streaming.schemas import StreamEventLogListResponse, StreamEventLogResponse
 from app.streaming.service import list_stream_event_logs, stream_initial_response
 
-router = APIRouter(prefix="/conversations", tags=["conversations"])
+router = APIRouter(prefix="/conversations", tags=["conversations"], route_class=ApplicationRoute)
 
 SSE_HEADERS = {
     "Cache-Control": "no-cache, no-transform",
@@ -177,4 +178,3 @@ def list_conversation_events_route(
             for event in list_stream_event_logs(session, conversation.id)
         ]
     )
-

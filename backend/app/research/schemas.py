@@ -88,4 +88,3 @@ class TrackedCompanyResponse(BaseModel):
 
 class TrackedCompanyListResponse(BaseModel):
     tracked_companies: list[TrackedCompanyResponse]
-
