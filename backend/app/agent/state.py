@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import NotRequired, TypedDict
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
 
@@ -20,10 +20,12 @@ from app.research_tools.company import (
 )
 from app.research_tools.competitors import CompetitorCandidate, CompetitorResearch
 from app.research_tools.context import ResearchToolContext
+from app.research_tools.reporting import MaterialReportClaim
 from app.streaming.events import StreamPayload
 
 
 class EvidenceDraft(BaseModel):
+    id: UUID = Field(default_factory=uuid4)
     claim: str
     source_title: str
     source_url: str
@@ -72,6 +74,8 @@ class ResearchState(TypedDict):
     research_gaps: NotRequired[list[ResearchGap]]
     coverage_score: NotRequired[float]
     draft_report: NotRequired[str]
+    draft_claims: NotRequired[list[MaterialReportClaim]]
+    confidence_score: NotRequired[float]
     verification_results: NotRequired[VerificationSummary]
     final_artifact: NotRequired[dict[str, object]]
 
