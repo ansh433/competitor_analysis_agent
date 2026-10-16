@@ -222,7 +222,9 @@ def test_long_conversation_persists_summary_before_research(
             "model_tier": "standard",
         },
     ).json()
-    assert client.post(f"/api/v1/research-runs/{run['id']}/stream", headers=headers).status_code == 200
+    assert (
+        client.post(f"/api/v1/research-runs/{run['id']}/stream", headers=headers).status_code == 200
+    )
     detail = client.get(f"/api/v1/conversations/{conversation['id']}", headers=headers)
     assert detail.status_code == 200
     assert detail.json()["summary"]

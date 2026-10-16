@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import sentry_sdk
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,6 +9,7 @@ from app.api.router import api_router
 from app.core.config import Settings, get_settings
 from app.core.db import DatabaseSessionCleanupMiddleware
 from app.core.errors import DomainError
+from app.core.static import SinglePageApplicationFiles
 from app.core.threadpool import install_threadpool_compatibility
 
 
@@ -38,6 +41,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
 
     application.include_router(api_router, prefix=runtime_settings.api_prefix)
+    static_directory = Path(__file__).parent / "static"
+    if static_directory.exists():
+        application.mount(
+            "/",
+            SinglePageApplicationFiles(directory=static_directory, html=True),
+            name="frontend",
+        )
     return application
 
 

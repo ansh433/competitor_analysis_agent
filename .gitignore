@@ -17,4 +17,5 @@ dist/
 playwright-report/
 test-results/
 frontend/src/client/generated/
+openapi.json
 

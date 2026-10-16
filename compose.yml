@@ -1,0 +1,57 @@
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - competitor-db:/var/lib/postgresql/data
+
+  migrate:
+    build:
+      context: .
+    env_file: ${APP_ENV_FILE:-.env}
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  backend:
+    build:
+      context: .
+    restart: unless-stopped
+    env_file: ${APP_ENV_FILE:-.env}
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/workspace/backend
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  frontend:
+    image: node:24-bookworm-slim
+    working_dir: /workspace
+    command: ["sh", "-c", "npm ci && npm --workspace frontend run dev"]
+    environment:
+      VITE_API_URL: http://localhost:8000/api/v1
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/workspace
+      - competitor-node-modules:/workspace/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  competitor-db:
+  competitor-node-modules:
+
