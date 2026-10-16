@@ -157,6 +157,82 @@ def deterministic_schema_fixture(schema_name: str, prompt: str = "") -> dict[str
             ],
             "discovery_notes": ["Candidates require normalized product comparison."],
         },
+        "CompanyTimeline": {
+            "events": [
+                {
+                    "event_date": "2026-01-15",
+                    "event_type": "launch",
+                    "title": "Workflow automation released",
+                    "description": "The company announced a workflow automation capability.",
+                    "classification": "sourced_fact",
+                    "evidence_urls": ["https://docs.example.com/news/acme"],
+                }
+            ],
+            "unavailable_periods": ["Executive changes before 2025"],
+        },
+        "ComparisonMatrix": {
+            "company_names": ["Acme Collaboration", "Northstar Work", "Taskboard Suite"],
+            "dimensions": ["Target customer", "Core product", "Pricing model", "Public entry price", "Positioning"],
+            "rows": [
+                {
+                    "dimension": "Public entry price",
+                    "cells": [
+                        {
+                            "company_name": "Acme Collaboration",
+                            "value": "$0 Starter; $12 Team",
+                            "classification": "sourced_fact",
+                            "evidence_urls": ["https://example.com/pricing/acme"],
+                        },
+                        {
+                            "company_name": "Northstar Work",
+                            "value": "$12 Team",
+                            "classification": "sourced_fact",
+                            "evidence_urls": ["https://northstar.example.com/pricing"],
+                        },
+                        {
+                            "company_name": "Taskboard Suite",
+                            "value": None,
+                            "classification": "unavailable_information",
+                            "evidence_urls": [],
+                        },
+                    ],
+                }
+            ],
+        },
+        "RiskAnalysis": {
+            "contradictions": [],
+            "negative_patterns": [],
+            "positioning_weaknesses": [
+                {
+                    "title": "Differentiation needs validation",
+                    "description": "Workflow speed is stated but no benchmark was located.",
+                    "severity": "medium",
+                    "classification": "analyst_interpretation",
+                    "evidence_urls": ["https://example.com/companies/acme"],
+                }
+            ],
+            "missing_evidence": [
+                {
+                    "title": "Enterprise pricing unavailable",
+                    "description": "No public enterprise price was found.",
+                    "severity": "low",
+                    "classification": "missing_evidence",
+                    "evidence_urls": [],
+                }
+            ],
+        },
+        "ResearchGapAnalysis": {
+            "gaps": [
+                {
+                    "question": "What is the negotiated enterprise pricing basis?",
+                    "report_section": "Pricing/business-model comparison",
+                    "reason": "Public sources only say contact sales.",
+                    "priority": "medium",
+                    "suggested_query": "Acme enterprise pricing billing basis",
+                }
+            ],
+            "coverage_score": 0.82,
+        },
     }
     fixture = fixtures.get(schema_name, {})
     if schema_name == "ResolvedCompanyIdentity" and "northstar" in prompt.lower():
