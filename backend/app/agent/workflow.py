@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from time import perf_counter
-from typing import TypeVar
+from typing import Literal, TypeVar
 from uuid import uuid4
 
 from langgraph.graph import END, START, StateGraph
@@ -20,11 +20,13 @@ from app.research_tools.analysis import (
     DetectRiskSignalsInput,
     IdentifyResearchGapsInput,
     SearchCompanyNewsInput,
+    TargetedResearchInput,
     build_company_timeline,
     build_comparison_matrix,
     detect_risk_signals,
     identify_research_gaps,
     search_company_news,
+    targeted_additional_research,
 )
 from app.research_tools.company import (
     ExtractCompanyProfileInput,
@@ -124,11 +126,30 @@ def research_product_and_pricing(
     state: ResearchState,
     runtime: Runtime[ResearchGraphContext],
 ) -> dict[str, object]:
+    source_search = run_tool(
+        "search_company_sources",
+        SearchCompanySourcesInput(
+            company=state["canonical_company"],
+            focus="pricing",
+            maximum_results=min(8, runtime.context.tools.maximum_sources),
+        ),
+        search_company_sources,
+        runtime.context,
+    )
+    fetched = [
+        run_tool(
+            "fetch_web_page",
+            FetchWebPageInput(url=source.url),
+            fetch_web_page,
+            runtime.context,
+        )
+        for source in source_search.sources[:5]
+    ]
     pricing = run_tool(
         "extract_product_and_pricing",
         ExtractProductAndPricingInput(
             company=state["canonical_company"],
-            sources=state["fetched_sources"],
+            sources=fetched,
         ),
         extract_product_and_pricing,
         runtime.context,
@@ -161,10 +182,33 @@ def discover_competitor_set(
     state: ResearchState,
     runtime: Runtime[ResearchGraphContext],
 ) -> dict[str, object]:
+    source_search = run_tool(
+        "search_company_sources",
+        SearchCompanySourcesInput(
+            company=state["canonical_company"], focus="official", maximum_results=4
+        ),
+        search_company_sources,
+        runtime.context,
+    )
+    fetched = [
+        run_tool(
+            "fetch_web_page",
+            FetchWebPageInput(url=source.url),
+            fetch_web_page,
+            runtime.context,
+        )
+        for source in source_search.sources[:3]
+    ]
+    profile = run_tool(
+        "extract_company_profile",
+        ExtractCompanyProfileInput(company=state["canonical_company"], sources=fetched),
+        extract_company_profile,
+        runtime.context,
+    )
     discovery = run_tool(
         "discover_competitors",
         DiscoverCompetitorsInput(
-            company=state["canonical_company"], profile=state["company_profile"]
+            company=state["canonical_company"], profile=profile
         ),
         discover_competitors,
         runtime.context,
@@ -276,6 +320,60 @@ def identify_evidence_gaps(
     return {"research_gaps": analysis.gaps, "coverage_score": analysis.coverage_score}
 
 
+def targeted_gap_research(
+    state: ResearchState,
+    runtime: Runtime[ResearchGraphContext],
+) -> dict[str, object]:
+    gaps = state.get("research_gaps", [])
+    if not gaps:
+        return {"loop_count": state["loop_count"] + 1}
+    result = run_tool(
+        "targeted_additional_research",
+        TargetedResearchInput(
+            query=gaps[0].suggested_query,
+            maximum_results=min(4, runtime.context.tools.maximum_sources),
+        ),
+        targeted_additional_research,
+        runtime.context,
+    )
+    fetched = [
+        run_tool(
+            "fetch_web_page",
+            FetchWebPageInput(url=source.url),
+            fetch_web_page,
+            runtime.context,
+        )
+        for source in result.sources[:3]
+    ]
+    additional_evidence = [
+        EvidenceDraft(
+            claim=f"Targeted evidence for: {gaps[0].question}",
+            source_title=source.title,
+            source_url=source.url,
+            publisher=source.publisher,
+            relevant_excerpt=source.clean_content[:600],
+            evidence_type="other",
+            confidence=0.72,
+            fact_classification="sourced_fact",
+        )
+        for source in fetched
+    ]
+    return {
+        "sources": [*state.get("sources", []), *result.sources],
+        "fetched_sources": [*state.get("fetched_sources", []), *fetched],
+        "evidence_records": [*state.get("evidence_records", []), *additional_evidence],
+        "loop_count": state["loop_count"] + 1,
+    }
+
+
+def route_after_gap_analysis(
+    state: ResearchState,
+) -> Literal["targeted_gap_research", "synthesize_dossier"]:
+    if state.get("research_gaps") and state["loop_count"] < state["maximum_gap_loops"]:
+        return "targeted_gap_research"
+    return "synthesize_dossier"
+
+
 def synthesize_dossier(
     state: ResearchState,
     runtime: Runtime[ResearchGraphContext],
@@ -337,6 +435,7 @@ def build_competitor_research_graph():
     builder.add_node("research_discovered_competitors", research_discovered_competitors)
     builder.add_node("build_comparison", build_comparison)
     builder.add_node("identify_evidence_gaps", identify_evidence_gaps)
+    builder.add_node("targeted_gap_research", targeted_gap_research)
     builder.add_node("synthesize_dossier", synthesize_dossier)
     builder.add_node("verify_claims_and_citations", verify_claims_and_citations)
     builder.add_node("persist_artifacts", persist_artifacts)
@@ -344,14 +443,27 @@ def build_competitor_research_graph():
     builder.add_edge("validate_request", "resolve_company")
     builder.add_edge("resolve_company", "create_research_plan")
     builder.add_edge("create_research_plan", "research_official_sources")
-    builder.add_edge("research_official_sources", "research_product_and_pricing")
-    builder.add_edge("research_product_and_pricing", "research_news_and_events")
-    builder.add_edge("research_news_and_events", "discover_competitors")
-    builder.add_edge("discover_competitors", "normalize_evidence")
+    builder.add_edge("create_research_plan", "research_product_and_pricing")
+    builder.add_edge("create_research_plan", "research_news_and_events")
+    builder.add_edge("create_research_plan", "discover_competitors")
+    builder.add_edge(
+        [
+            "research_official_sources",
+            "research_product_and_pricing",
+            "research_news_and_events",
+            "discover_competitors",
+        ],
+        "normalize_evidence",
+    )
     builder.add_edge("normalize_evidence", "research_discovered_competitors")
     builder.add_edge("research_discovered_competitors", "build_comparison")
     builder.add_edge("build_comparison", "identify_evidence_gaps")
-    builder.add_edge("identify_evidence_gaps", "synthesize_dossier")
+    builder.add_conditional_edges(
+        "identify_evidence_gaps",
+        route_after_gap_analysis,
+        ["targeted_gap_research", "synthesize_dossier"],
+    )
+    builder.add_edge("targeted_gap_research", "identify_evidence_gaps")
     builder.add_edge("synthesize_dossier", "verify_claims_and_citations")
     builder.add_edge("verify_claims_and_citations", "persist_artifacts")
     builder.add_edge("persist_artifacts", END)

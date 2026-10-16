@@ -125,6 +125,15 @@ class IdentifyResearchGapsInput(BaseModel):
     evidence_count: int = Field(ge=0)
 
 
+class TargetedResearchInput(BaseModel):
+    query: str = Field(min_length=3, max_length=500)
+    maximum_results: int = Field(default=4, ge=1, le=10)
+
+
+class TargetedResearchOutput(BaseModel):
+    sources: list[SourceRecord]
+
+
 def search_company_news(
     tool_input: SearchCompanyNewsInput,
     context: ResearchToolContext,
@@ -213,5 +222,29 @@ def identify_research_gaps(
         f"COMPARISON: {tool_input.comparison.model_dump_json()}\n"
         f"RISKS: {tool_input.risks.model_dump_json()}",
         ResearchGapAnalysis,
+    )
+
+
+def targeted_additional_research(
+    tool_input: TargetedResearchInput,
+    context: ResearchToolContext,
+) -> TargetedResearchOutput:
+    response = context.providers.search.search(
+        tool_input.query,
+        maximum_results=min(tool_input.maximum_results, context.maximum_sources),
+    )
+    return TargetedResearchOutput(
+        sources=[
+            SourceRecord(
+                title=hit.title,
+                url=hit.url,
+                snippet=hit.snippet,
+                publisher=urlsplit(hit.url).hostname or "unknown",
+                source_type="targeted_gap_research",
+                relevance_score=hit.score,
+                published_at=hit.published_at,
+            )
+            for hit in response.results
+        ]
     )
 

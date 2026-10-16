@@ -55,6 +55,7 @@ class ResearchState(TypedDict):
     research_objective: str
     company_input: str
     loop_count: int
+    maximum_gap_loops: int
     canonical_company: NotRequired[ResolvedCompanyIdentity]
     research_plan: NotRequired[list[str]]
     sources: NotRequired[list[SourceRecord]]
