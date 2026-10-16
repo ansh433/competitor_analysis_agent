@@ -54,6 +54,7 @@ from app.research_tools.reporting import (
     verify_report_claims,
 )
 from app.streaming.events import ToolEnded, ToolStarted
+from app.streaming.events import GraphStageEnded, GraphStageStarted
 
 ToolInput = TypeVar("ToolInput", bound=BaseModel)
 ToolOutput = TypeVar("ToolOutput", bound=BaseModel)
@@ -683,22 +684,22 @@ def persist_artifacts(state: ResearchState) -> dict[str, object]:
 
 def build_competitor_research_graph():
     builder = StateGraph(ResearchState, context_schema=ResearchGraphContext)
-    builder.add_node("validate_request", validate_request)
-    builder.add_node("resolve_company", resolve_company)
-    builder.add_node("create_research_plan", create_research_plan)
-    builder.add_node("research_official_sources", research_official_sources)
-    builder.add_node("research_product_and_pricing", research_product_and_pricing)
-    builder.add_node("research_news_and_events", research_news_and_events)
-    builder.add_node("discover_competitors", discover_competitor_set)
-    builder.add_node("normalize_evidence", normalize_evidence)
-    builder.add_node("research_discovered_competitors", research_discovered_competitors)
-    builder.add_node("build_comparison", build_comparison)
-    builder.add_node("identify_evidence_gaps", identify_evidence_gaps)
-    builder.add_node("targeted_gap_research", targeted_gap_research)
-    builder.add_node("synthesize_dossier", synthesize_dossier)
-    builder.add_node("verify_claims_and_citations", verify_claims_and_citations_with_context)
-    builder.add_node("revise_dossier", revise_dossier)
-    builder.add_node("persist_artifacts", persist_artifacts)
+    builder.add_node("validate_request", stage_node("validate_request", 0, validate_request, False))
+    builder.add_node("resolve_company", stage_node("resolve_company", 1, resolve_company, True))
+    builder.add_node("create_research_plan", stage_node("create_research_plan", 2, create_research_plan, False))
+    builder.add_node("research_official_sources", stage_node("research_official_sources", 3, research_official_sources, True))
+    builder.add_node("research_product_and_pricing", stage_node("research_product_and_pricing", 4, research_product_and_pricing, True))
+    builder.add_node("research_news_and_events", stage_node("research_news_and_events", 5, research_news_and_events, True))
+    builder.add_node("discover_competitors", stage_node("discover_competitors", 6, discover_competitor_set, True))
+    builder.add_node("normalize_evidence", stage_node("normalize_evidence", 7, normalize_evidence, False))
+    builder.add_node("research_discovered_competitors", stage_node("research_discovered_competitors", 8, research_discovered_competitors, True))
+    builder.add_node("build_comparison", stage_node("build_comparison", 9, build_comparison, True))
+    builder.add_node("identify_evidence_gaps", stage_node("identify_evidence_gaps", 10, identify_evidence_gaps, True))
+    builder.add_node("targeted_gap_research", stage_node("targeted_gap_research", 11, targeted_gap_research, True))
+    builder.add_node("synthesize_dossier", stage_node("synthesize_dossier", 12, synthesize_dossier, True))
+    builder.add_node("verify_claims_and_citations", stage_node("verify_claims_and_citations", 13, verify_claims_and_citations_with_context, True))
+    builder.add_node("revise_dossier", stage_node("revise_dossier", 14, revise_dossier, False))
+    builder.add_node("persist_artifacts", stage_node("persist_artifacts", 15, persist_artifacts, False))
     builder.add_edge(START, "validate_request")
     builder.add_edge("validate_request", "resolve_company")
     builder.add_edge("resolve_company", "create_research_plan")
@@ -733,6 +734,34 @@ def build_competitor_research_graph():
     builder.add_edge("revise_dossier", "verify_claims_and_citations")
     builder.add_edge("persist_artifacts", END)
     return builder.compile()
+
+
+def stage_node(
+    name: str,
+    index: int,
+    node: Callable[..., dict[str, object]],
+    uses_runtime: bool,
+) -> Callable[[ResearchState, Runtime[ResearchGraphContext]], dict[str, object]]:
+    def wrapped(
+        state: ResearchState,
+        runtime: Runtime[ResearchGraphContext],
+    ) -> dict[str, object]:
+        runtime.context.emit(
+            GraphStageStarted(stage_name=name, stage_index=index, detail=f"Starting {name}")
+        )
+        try:
+            result = node(state, runtime) if uses_runtime else node(state)
+        except Exception:
+            runtime.context.emit(
+                GraphStageEnded(stage_name=name, stage_index=index, detail=f"Failed {name}")
+            )
+            raise
+        runtime.context.emit(
+            GraphStageEnded(stage_name=name, stage_index=index, detail=f"Completed {name}")
+        )
+        return result
+
+    return wrapped
 
 
 COMPETITOR_RESEARCH_GRAPH = build_competitor_research_graph()
