@@ -195,6 +195,38 @@ def test_provider_failure_marks_run_failed_and_streams_typed_error(
     assert detail.json()["error_message"].startswith("ExternalProviderError")
 
 
+def test_targeted_fetch_failure_is_rejected_without_failing_research_run(
+    client: IntegrationClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FailOneTargetedFetch(DeterministicPageFetcher):
+        def fetch(self, url: str):
+            if "enterprise+pricing" in url:
+                raise ExternalProviderError("targeted source blocked")
+            return super().fetch(url)
+
+    providers = ResearchProviders(
+        search=DeterministicSearchProvider(),
+        pages=FailOneTargetedFetch(),
+        model=DeterministicModelProvider(),
+    )
+    monkeypatch.setattr(
+        "app.research.stream_runner.build_research_providers",
+        lambda *_args, **_kwargs: providers,
+    )
+    headers = create_user_headers(client, "targeted-fetch-failure")
+    workspace_id = create_workspace(client, headers, "Targeted fetch failure")
+    research_run = create_run(client, headers, workspace_id)
+
+    stream = client.post(f"/api/v1/research-runs/{research_run['id']}/stream", headers=headers)
+
+    assert stream.status_code == 200
+    assert "evidence_rejected" in event_names(stream.text)
+    detail = client.get(f"/api/v1/research-runs/{research_run['id']}", headers=headers)
+    assert detail.json()["status"] == "completed"
+    assert all("enterprise+pricing" not in item["source_url"] for item in detail.json()["evidence"])
+
+
 def test_retryable_provider_failure_pauses_and_resumes_from_checkpoint(
     client: IntegrationClient,
     monkeypatch: pytest.MonkeyPatch,

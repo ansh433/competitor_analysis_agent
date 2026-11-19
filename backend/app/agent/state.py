@@ -37,6 +37,12 @@ class EvidenceDraft(BaseModel):
     fact_classification: str
 
 
+class RejectedEvidence(BaseModel):
+    title: str
+    source_url: str
+    reason: str
+
+
 class ClaimVerification(BaseModel):
     claim: str
     supported: bool
@@ -74,6 +80,7 @@ class ResearchState(TypedDict):
     comparison_matrix: NotRequired[ComparisonMatrix]
     risk_analysis: NotRequired[RiskAnalysis]
     evidence_records: NotRequired[list[EvidenceDraft]]
+    rejected_evidence: NotRequired[list[RejectedEvidence]]
     research_gaps: NotRequired[list[ResearchGap]]
     coverage_score: NotRequired[float]
     draft_report: NotRequired[str]

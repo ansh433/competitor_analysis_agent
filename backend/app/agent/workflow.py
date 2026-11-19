@@ -10,10 +10,12 @@ from pydantic import BaseModel
 from app.agent.state import (
     ClaimVerification,
     EvidenceDraft,
+    RejectedEvidence,
     ResearchGraphContext,
     ResearchState,
     VerificationSummary,
 )
+from app.core.errors import ExternalProviderError
 from app.research_tools.analysis import (
     BuildCompanyTimelineInput,
     BuildComparisonMatrixInput,
@@ -340,15 +342,26 @@ def targeted_gap_research(
         targeted_additional_research,
         runtime.context,
     )
-    fetched = [
-        run_tool(
-            "fetch_web_page",
-            FetchWebPageInput(url=source.url),
-            fetch_web_page,
-            runtime.context,
-        )
-        for source in result.sources[:3]
-    ]
+    fetched = []
+    rejected = []
+    for source in result.sources[:3]:
+        try:
+            fetched.append(
+                run_tool(
+                    "fetch_web_page",
+                    FetchWebPageInput(url=source.url),
+                    fetch_web_page,
+                    runtime.context,
+                )
+            )
+        except ExternalProviderError as error:
+            rejected.append(
+                RejectedEvidence(
+                    title=source.title,
+                    source_url=source.url,
+                    reason=str(error),
+                )
+            )
     additional_evidence = [
         EvidenceDraft(
             claim=f"Targeted evidence for: {gaps[0].question}",
@@ -366,6 +379,7 @@ def targeted_gap_research(
         "sources": [*state.get("sources", []), *result.sources],
         "fetched_sources": [*state.get("fetched_sources", []), *fetched],
         "evidence_records": [*state.get("evidence_records", []), *additional_evidence],
+        "rejected_evidence": [*state.get("rejected_evidence", []), *rejected],
         "loop_count": state["loop_count"] + 1,
     }
 

@@ -213,6 +213,16 @@ def _execute_research_run(
                         confidence=evidence.confidence,
                     )
                 )
+            for rejected in result.get("rejected_evidence", []):
+                emit(
+                    EvidenceRejected(
+                        evidence_id=uuid4(),
+                        claim=f"Rejected targeted source: {rejected.title}",
+                        source_url=rejected.source_url,
+                        reason=rejected.reason,
+                        confidence=0,
+                    )
+                )
             for unsupported in result["verification_results"].unsupported_claims:
                 emit(
                     EvidenceRejected(
