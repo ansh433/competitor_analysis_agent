@@ -12,7 +12,7 @@ docker compose up --build
 
 The database health check gates the migration service. A successful migration gates backend startup. The Vite service proxies to the backend during development.
 
-The repository uses one root `.env`. Direct host processes read its `DATABASE_URL` with `localhost:5435`; Compose overrides `DATABASE_URL` for backend and migration containers so they connect to `db:5432`.
+The repository uses one root `.env`. Direct host processes read its `DATABASE_URL` through `POSTGRES_HOST_PORT` (55432 by default); Compose overrides `DATABASE_URL` for backend and migration containers so they connect to `db:5432`.
 
 ## Production image
 
