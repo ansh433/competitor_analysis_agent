@@ -57,6 +57,8 @@ cd backend && uv run uvicorn app.main:app --reload
 npm --workspace frontend run dev
 ```
 
+Configuration is read only from the repository-root `.env`, regardless of whether the backend command is run from the root or `backend/`. Host-run backends use `localhost:5435`; Docker Compose overrides the database host to `db:5432` inside containers.
+
 Open `http://localhost:5173`. To create the first administrator, explicitly provide one-time credentials; the command has no default password:
 
 ```bash
