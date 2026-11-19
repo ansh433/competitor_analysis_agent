@@ -26,9 +26,12 @@ class Settings(BaseSettings):
     frontend_host: AnyHttpUrl
     backend_cors_origins: list[AnyHttpUrl] = []
     gemini_api_key: SecretStr | None = None
+    gemini_api_key_2: SecretStr | None = None
+    gemini_api_key_3: SecretStr | None = None
+    gemini_api_key_4: SecretStr | None = None
     tavily_api_key: SecretStr | None = None
-    gemini_model: str = "gemini-2.0-flash"
-    upgraded_gemini_model: str = "gemini-2.5-pro"
+    gemini_model: str = "gemini-3.5-flash-lite"
+    upgraded_gemini_model: str = "gemini-3.5-flash-lite"
     standard_research_runs_per_day: int = 5
     upgraded_research_runs_per_day: int = 2
     maximum_sources_per_run: int = 30
@@ -50,6 +53,18 @@ class Settings(BaseSettings):
         origins = {str(origin).rstrip("/") for origin in self.backend_cors_origins}
         origins.add(str(self.frontend_host).rstrip("/"))
         return sorted(origins)
+
+    @property
+    def gemini_api_keys(self) -> list[tuple[str, str]]:
+        configured = (
+            ("GEMINI_API_KEY", self.gemini_api_key),
+            ("GEMINI_API_KEY_2", self.gemini_api_key_2),
+            ("GEMINI_API_KEY_3", self.gemini_api_key_3),
+            ("GEMINI_API_KEY_4", self.gemini_api_key_4),
+        )
+        return [
+            (label, secret.get_secret_value()) for label, secret in configured if secret is not None
+        ]
 
 
 @lru_cache

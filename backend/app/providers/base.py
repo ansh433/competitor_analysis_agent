@@ -49,13 +49,21 @@ class ModelProvider(Protocol):
     @property
     def model_name(self) -> str: ...
 
-    def generate_text(self, system_prompt: str, user_prompt: str) -> str: ...
+    def generate_text(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        *,
+        task_name: str = "generate_text",
+    ) -> str: ...
 
     def generate_structured(
         self,
         system_prompt: str,
         user_prompt: str,
         schema: type[ResponseModel],
+        *,
+        task_name: str | None = None,
     ) -> ResponseModel: ...
 
 

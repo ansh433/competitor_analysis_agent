@@ -29,6 +29,7 @@ Run `alembic upgrade head` as a release job before replacing application instanc
 - Use a restricted PostgreSQL role and TLS connection.
 - Set exact `FRONTEND_HOST` and `BACKEND_CORS_ORIGINS` values.
 - Supply Gemini and Tavily keys only to the backend.
+- Gemini accepts `GEMINI_API_KEY` through `GEMINI_API_KEY_4`; successive calls rotate round-robin. Retryable 429/503/504 failures advance to the next key once per request, while authentication, invalid-request, and schema-validation errors do not rotate.
 - Put an egress proxy or network policy in front of arbitrary page retrieval.
 - Disable reverse-proxy buffering for SSE and preserve `X-Accel-Buffering: no`.
 - Configure request, idle, and load-balancer timeouts for research duration.

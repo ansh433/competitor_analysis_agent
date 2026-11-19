@@ -18,7 +18,7 @@ def build_research_providers(settings: Settings, upgraded_model: bool = False) -
             pages=DeterministicPageFetcher(),
             model=DeterministicModelProvider(),
         )
-    if not settings.tavily_api_key or not settings.gemini_api_key:
+    if not settings.tavily_api_key or not settings.gemini_api_keys:
         raise ExternalProviderError("Live research requires Gemini and Tavily API keys")
     model_name = settings.upgraded_gemini_model if upgraded_model else settings.gemini_model
     return ResearchProviders(
@@ -28,7 +28,7 @@ def build_research_providers(settings: Settings, upgraded_model: bool = False) -
             maximum_bytes=settings.maximum_fetched_bytes,
         ),
         model=GoogleGeminiModelProvider(
-            api_key=settings.gemini_api_key.get_secret_value(),
             model_name=model_name,
+            api_keys=settings.gemini_api_keys,
         ),
     )

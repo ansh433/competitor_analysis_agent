@@ -64,8 +64,14 @@ class DeterministicPageFetcher:
 class DeterministicModelProvider:
     model_name = "deterministic-research-model"
 
-    def generate_text(self, system_prompt: str, user_prompt: str) -> str:
-        del system_prompt
+    def generate_text(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        *,
+        task_name: str = "generate_text",
+    ) -> str:
+        del system_prompt, task_name
         return (
             "## Deterministic research synthesis\n\n"
             "The available evidence supports a focused comparison. "
@@ -77,8 +83,10 @@ class DeterministicModelProvider:
         system_prompt: str,
         user_prompt: str,
         schema: type[ResponseModel],
+        *,
+        task_name: str | None = None,
     ) -> ResponseModel:
-        del system_prompt
+        del system_prompt, task_name
         fixture = deterministic_schema_fixture(schema.__name__, user_prompt)
         return schema.model_validate(fixture)
 
