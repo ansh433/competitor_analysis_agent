@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { ArrowUpRight, FolderPlus } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import type { FormEvent } from "react";
 
 import { apiRequest } from "../api/client";
@@ -39,70 +39,71 @@ export function WorkspacesPage(): React.JSX.Element {
   }
 
   return (
-    <section className="max-w-6xl">
-      <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
-        <div>
-          <p className="mb-3 text-sm font-semibold text-[var(--teal)]">
-            Research library
-          </p>
-          <h1 className="font-display text-4xl text-[var(--navy)] md:text-5xl">
-            Workspaces
-          </h1>
-          <p className="mt-4 max-w-2xl text-lg text-[var(--muted)]">
-            Keep each market thesis, company set, and evidence trail in a
-            distinct mandate.
-          </p>
-        </div>
-        <span className="text-sm text-[var(--muted)]">
-          {workspaces.data?.total ?? 0} workspaces
-        </span>
-      </div>
+    <section className="mx-auto max-w-5xl">
+      <header>
+        <h1 className="page-title">Workspaces</h1>
+        <p className="mt-3 max-w-xl text-sm leading-6 text-ink-secondary">
+          Organize companies and research by project or market.
+        </p>
+      </header>
 
-      <div className="mt-10 grid gap-8 lg:grid-cols-[1fr_22rem]">
-        <div className="divide-y divide-[var(--line)] border-y border-[var(--line)]">
+      <div className="mt-8 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-10">
+        <div className="min-w-0 space-y-3">
           {workspaces.isLoading ? (
-            <p className="py-6 text-[var(--muted)]">Loading workspaces…</p>
+            <p className="py-6 text-sm text-ink-secondary">
+              Loading workspaces…
+            </p>
           ) : null}
           {workspaces.data?.workspaces.map((workspace) => (
             <Link
               key={workspace.id}
               to="/workspaces/$workspaceId"
               params={{ workspaceId: workspace.id }}
-              className="group flex min-h-28 items-center justify-between gap-6 py-5 hover:bg-white/55"
+              className="group flex min-h-24 items-center justify-between gap-6 rounded-xl border border-hairline bg-surface px-4 py-5 shadow-quiet hover:bg-subtle/40 sm:px-5"
             >
-              <div>
-                <h2 className="font-display text-2xl text-[var(--navy)]">
+              <div className="min-w-0">
+                <h2 className="break-words font-serif text-2xl font-semibold text-ink">
                   {workspace.name}
                 </h2>
-                <p className="mt-2 line-clamp-2 text-sm text-[var(--muted)]">
-                  {workspace.description || "No description yet"}
-                </p>
+                {workspace.description ? (
+                  <p className="mt-1 line-clamp-2 break-words text-sm leading-6 text-ink-secondary">
+                    {workspace.description}
+                  </p>
+                ) : null}
               </div>
-              <ArrowUpRight
-                className="shrink-0 transition-transform group-hover:-translate-y-1 group-hover:translate-x-1"
+              <ArrowRight
+                className="shrink-0 text-ink-secondary group-hover:translate-x-0.5 group-hover:text-teal"
                 aria-hidden="true"
+                size={18}
               />
             </Link>
           ))}
           {workspaces.data?.total === 0 ? (
-            <p className="py-10 text-[var(--muted)]">
-              Create the first workspace for your current strategic question.
-            </p>
+            <div className="rounded-xl border border-dashed border-hairline bg-surface/60 px-5 py-8">
+              <p className="text-sm leading-6 text-ink-secondary">
+                Create a workspace to add companies and start research.
+              </p>
+            </div>
           ) : null}
         </div>
         <form
           onSubmit={handleCreate}
-          className="h-fit border border-[var(--line)] bg-white p-6"
+          aria-labelledby="new-workspace-title"
+          className="surface-card min-w-0 rounded-[var(--radius-card-lg)] p-5 sm:p-6"
         >
-          <FolderPlus aria-hidden="true" className="text-[var(--teal)]" />
-          <h2 className="mt-4 font-display text-2xl">New workspace</h2>
-          <label className="mt-5 block text-sm font-medium">
+          <h2 id="new-workspace-title" className="section-title">
+            New workspace
+          </h2>
+          <label className="mt-6 block text-sm font-medium">
             Name
             <input name="name" required className="form-input" />
           </label>
           <label className="mt-4 block text-sm font-medium">
             Description
-            <textarea name="description" className="form-input min-h-24" />
+            <textarea
+              name="description"
+              className="form-input min-h-24 resize-y"
+            />
           </label>
           {createWorkspace.error ? (
             <p role="alert" className="mt-3 text-sm text-red-800">
@@ -112,7 +113,7 @@ export function WorkspacesPage(): React.JSX.Element {
           <button
             type="submit"
             disabled={createWorkspace.isPending}
-            className="mt-5 min-h-11 w-full bg-[var(--navy)] px-4 font-semibold text-white disabled:opacity-50"
+            className="button-primary mt-6 w-full"
           >
             Create workspace
           </button>

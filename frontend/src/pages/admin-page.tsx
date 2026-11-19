@@ -54,30 +54,48 @@ export function AdminPage(): React.JSX.Element {
   }
 
   return (
-    <section className="max-w-6xl">
-      <p className="mb-3 text-sm font-semibold text-[var(--teal)]">
-        Access administration
-      </p>
-      <h1 className="font-display text-5xl text-[var(--navy)]">Users</h1>
-      <div className="mt-10 grid gap-8 lg:grid-cols-[1fr_22rem]">
-        <div className="overflow-x-auto border border-[var(--line)] bg-white">
-          <table className="w-full min-w-[42rem] text-left text-sm">
-            <thead className="bg-[var(--navy)] text-white">
+    <section className="mx-auto min-w-0 max-w-5xl">
+      <h1 className="page-title">Users</h1>
+      {updateUser.isError ? (
+        <p role="alert" className="mt-5 text-sm text-red-800">
+          User status could not be updated. Please try again.
+        </p>
+      ) : null}
+      <div className="mt-8 grid items-start gap-8 xl:grid-cols-[minmax(0,1fr)_20rem]">
+        <section
+          aria-label="User accounts"
+          className="min-w-0 overflow-x-auto rounded-xl border border-hairline bg-surface shadow-quiet"
+        >
+          <table className="w-full min-w-[36rem] text-left text-sm">
+            <caption className="sr-only">
+              User accounts, roles, and access
+            </caption>
+            <thead className="border-b border-hairline bg-subtle/60 text-ink-secondary">
               <tr>
-                <th className="p-4">User</th>
-                <th className="p-4">Role</th>
-                <th className="p-4">Status</th>
-                <th className="p-4">Action</th>
+                <th scope="col" className="p-4 font-medium">
+                  User
+                </th>
+                <th scope="col" className="p-4 font-medium">
+                  Role
+                </th>
+                <th scope="col" className="p-4 font-medium">
+                  Status
+                </th>
+                <th scope="col" className="p-4 font-medium">
+                  Action
+                </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[var(--line)]">
+            <tbody className="divide-y divide-hairline">
               {users.data?.users.map((user) => (
                 <tr key={user.id}>
                   <td className="p-4">
-                    <strong className="block">
-                      {user.full_name ?? "Unnamed"}
+                    <strong className="block font-medium">
+                      {user.full_name || user.email}
                     </strong>
-                    <span className="text-[var(--muted)]">{user.email}</span>
+                    {user.full_name ? (
+                      <span className="text-ink-secondary">{user.email}</span>
+                    ) : null}
                   </td>
                   <td className="p-4">
                     {user.is_superuser ? "Administrator" : "Analyst"}
@@ -88,7 +106,9 @@ export function AdminPage(): React.JSX.Element {
                   <td className="p-4">
                     <button
                       type="button"
-                      className="text-[var(--teal)] underline"
+                      className="text-link inline-flex min-h-11 items-center"
+                      aria-label={`${user.is_active ? "Disable" : "Enable"} ${user.full_name || user.email}`}
+                      disabled={updateUser.isPending}
                       onClick={() =>
                         updateUser.mutate({
                           id: user.id,
@@ -101,21 +121,66 @@ export function AdminPage(): React.JSX.Element {
                   </td>
                 </tr>
               ))}
+              {users.isLoading ? (
+                <tr>
+                  <td colSpan={4} className="p-6 text-ink-secondary">
+                    <output>Loading users…</output>
+                  </td>
+                </tr>
+              ) : null}
+              {users.isError ? (
+                <tr>
+                  <td colSpan={4} className="p-6">
+                    <p role="alert" className="text-ink-secondary">
+                      User accounts could not be loaded.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => void users.refetch()}
+                      disabled={users.isFetching}
+                      className="button-secondary mt-4"
+                    >
+                      {users.isFetching ? "Retrying…" : "Try again"}
+                    </button>
+                  </td>
+                </tr>
+              ) : null}
+              {users.data?.users.length === 0 && !users.isError ? (
+                <tr>
+                  <td colSpan={4} className="p-6 text-ink-secondary">
+                    No user accounts found.
+                  </td>
+                </tr>
+              ) : null}
             </tbody>
           </table>
-        </div>
+        </section>
         <form
           onSubmit={handleCreate}
-          className="h-fit border border-[var(--line)] bg-white p-6"
+          aria-busy={createUser.isPending}
+          className="surface-card h-fit p-5 sm:p-6"
         >
-          <h2 className="font-display text-2xl">Add user</h2>
+          <h2 className="font-serif text-xl">Add user</h2>
           <label className="mt-4 block text-sm font-medium">
             Full name
-            <input name="fullName" required className="form-input" />
+            <input
+              name="fullName"
+              required
+              className="form-input"
+              autoComplete="off"
+            />
           </label>
           <label className="mt-4 block text-sm font-medium">
             Email
-            <input name="email" type="email" required className="form-input" />
+            <input
+              name="email"
+              type="email"
+              required
+              className="form-input"
+              autoComplete="off"
+              autoCapitalize="none"
+              spellCheck={false}
+            />
           </label>
           <label className="mt-4 block text-sm font-medium">
             Temporary password
@@ -125,17 +190,30 @@ export function AdminPage(): React.JSX.Element {
               minLength={12}
               required
               className="form-input"
+              autoComplete="new-password"
+              aria-describedby="temporary-password-guidance"
             />
           </label>
+          <p
+            id="temporary-password-guidance"
+            className="mt-2 text-sm text-ink-secondary"
+          >
+            Use at least 12 characters.
+          </p>
           <label className="mt-4 flex min-h-11 items-center gap-3 text-sm">
             <input name="isSuperuser" type="checkbox" /> Administrator
           </label>
+          {createUser.isError ? (
+            <p role="alert" className="mt-4 text-sm text-red-800">
+              {createUser.error.message}
+            </p>
+          ) : null}
           <button
             type="submit"
             disabled={createUser.isPending}
-            className="mt-4 min-h-11 w-full bg-[var(--navy)] px-4 font-semibold text-white disabled:opacity-50"
+            className="button-primary mt-4 w-full"
           >
-            Create user
+            {createUser.isPending ? "Creating…" : "Create user"}
           </button>
         </form>
       </div>

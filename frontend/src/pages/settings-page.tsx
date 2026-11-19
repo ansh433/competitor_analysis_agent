@@ -29,6 +29,7 @@ export function SettingsPage(): React.JSX.Element {
 
   function handleProfile(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
+    setMessage(null);
     const data = new FormData(event.currentTarget);
     updateProfile.mutate({
       full_name: String(data.get("fullName") ?? ""),
@@ -37,6 +38,7 @@ export function SettingsPage(): React.JSX.Element {
   }
   function handlePassword(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
+    setMessage(null);
     const form = event.currentTarget;
     const data = new FormData(form);
     changePassword.mutate(
@@ -49,82 +51,106 @@ export function SettingsPage(): React.JSX.Element {
   }
 
   return (
-    <section className="max-w-5xl">
-      <p className="mb-3 text-sm font-semibold text-[var(--teal)]">
-        Account controls
-      </p>
-      <h1 className="font-display text-5xl text-[var(--navy)]">Settings</h1>
+    <section className="mx-auto min-w-0 max-w-4xl">
+      <h1 className="page-title">Settings</h1>
       {message ? (
         <output className="mt-5 block bg-emerald-50 p-4 text-emerald-900">
           {message}
         </output>
       ) : null}
-      <div className="mt-10 grid gap-8 md:grid-cols-2">
+      <div className="mt-8 divide-y divide-hairline border-y border-hairline">
         <form
           onSubmit={handleProfile}
-          className="border border-[var(--line)] bg-white p-6"
+          aria-busy={updateProfile.isPending}
+          className="grid gap-5 py-7 md:grid-cols-[12rem_minmax(0,1fr)]"
         >
-          <h2 className="font-display text-2xl">Profile</h2>
-          <label className="mt-5 block text-sm font-medium">
-            Full name
-            <input
-              name="fullName"
-              required
-              defaultValue={currentUser?.full_name ?? ""}
-              className="form-input"
-            />
-          </label>
-          <label className="mt-4 block text-sm font-medium">
-            Email
-            <input
-              name="email"
-              type="email"
-              required
-              defaultValue={currentUser?.email ?? ""}
-              className="form-input"
-            />
-          </label>
-          <button
-            type="submit"
-            disabled={updateProfile.isPending}
-            className="mt-5 min-h-11 bg-[var(--navy)] px-5 font-semibold text-white disabled:opacity-50"
-          >
-            Save profile
-          </button>
+          <h2 className="font-serif text-xl">Profile</h2>
+          <div className="min-w-0 max-w-md">
+            <label className="block text-sm font-medium">
+              Full name
+              <input
+                name="fullName"
+                required
+                defaultValue={currentUser?.full_name ?? ""}
+                className="form-input"
+                autoComplete="name"
+              />
+            </label>
+            <label className="mt-4 block text-sm font-medium">
+              Email
+              <input
+                name="email"
+                type="email"
+                required
+                defaultValue={currentUser?.email ?? ""}
+                className="form-input"
+                autoComplete="email"
+                autoCapitalize="none"
+                spellCheck={false}
+              />
+            </label>
+            {updateProfile.isError ? (
+              <p role="alert" className="mt-4 text-sm text-red-800">
+                {updateProfile.error.message}
+              </p>
+            ) : null}
+            <button
+              type="submit"
+              disabled={updateProfile.isPending}
+              className="button-primary mt-5"
+            >
+              {updateProfile.isPending ? "Saving…" : "Save profile"}
+            </button>
+          </div>
         </form>
         <form
           onSubmit={handlePassword}
-          className="border border-[var(--line)] bg-white p-6"
+          aria-busy={changePassword.isPending}
+          className="grid gap-5 py-7 md:grid-cols-[12rem_minmax(0,1fr)]"
         >
-          <h2 className="font-display text-2xl">Password</h2>
-          <label className="mt-5 block text-sm font-medium">
-            Current password
-            <input
-              name="currentPassword"
-              type="password"
-              required
-              className="form-input"
-              autoComplete="current-password"
-            />
-          </label>
-          <label className="mt-4 block text-sm font-medium">
-            New password
-            <input
-              name="newPassword"
-              type="password"
-              required
-              minLength={12}
-              className="form-input"
-              autoComplete="new-password"
-            />
-          </label>
-          <button
-            type="submit"
-            disabled={changePassword.isPending}
-            className="mt-5 min-h-11 bg-[var(--navy)] px-5 font-semibold text-white disabled:opacity-50"
-          >
-            Change password
-          </button>
+          <h2 className="font-serif text-xl">Password</h2>
+          <div className="min-w-0 max-w-md">
+            <label className="block text-sm font-medium">
+              Current password
+              <input
+                name="currentPassword"
+                type="password"
+                required
+                className="form-input"
+                autoComplete="current-password"
+              />
+            </label>
+            <label className="mt-4 block text-sm font-medium">
+              New password
+              <input
+                name="newPassword"
+                type="password"
+                required
+                minLength={12}
+                className="form-input"
+                autoComplete="new-password"
+                aria-describedby="new-password-guidance"
+              />
+            </label>
+            <p
+              id="new-password-guidance"
+              className="mt-2 text-sm text-ink-secondary"
+            >
+              Use at least 12 characters.
+            </p>
+            {changePassword.isError ? (
+              <p role="alert" className="mt-4 text-sm text-red-800">
+                {changePassword.error.message}
+              </p>
+            ) : null}
+            <button
+              type="submit"
+              disabled={changePassword.isPending}
+              className="button-primary mt-5"
+            >
+              {changePassword.isPending ? "Updating…" : "Change password"}
+            </button>
+          </div>
         </form>
       </div>
     </section>

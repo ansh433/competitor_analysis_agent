@@ -6,6 +6,7 @@ import {
   redirect,
 } from "@tanstack/react-router";
 
+import { getStoredToken } from "./api/client";
 import type { AuthContextValue } from "./auth/auth-context";
 import { AppShell } from "./components/app-shell";
 import { AdminPage } from "./pages/admin-page";
@@ -13,6 +14,8 @@ import { AuthPage } from "./pages/auth-page";
 import { CompanyDetailPage } from "./pages/company-detail-page";
 import { ComparisonPage } from "./pages/comparison-page";
 import { DashboardPage } from "./pages/dashboard-page";
+import { DemoReportPage } from "./pages/demo-report-page";
+import { LandingPage } from "./pages/landing-page";
 import { ResearchStartPage } from "./pages/research-start-page";
 import { SettingsPage } from "./pages/settings-page";
 import { TrackedCompaniesPage } from "./pages/tracked-companies-page";
@@ -52,7 +55,9 @@ const protectedRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: "protected",
   beforeLoad: ({ context }) => {
-    if (!context.auth.currentUser) throw redirect({ to: "/login" });
+    if (!context.auth.currentUser && !getStoredToken()) {
+      throw redirect({ to: "/login" });
+    }
   },
   component: AppShell,
 });
@@ -60,9 +65,12 @@ const protectedRoute = createRoute({
 const homeRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
-  beforeLoad: () => {
-    throw redirect({ to: "/dashboard" });
-  },
+  component: LandingPage,
+});
+const demoReportRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/demo-report",
+  component: DemoReportPage,
 });
 
 const researchRoute = createRoute({
@@ -117,6 +125,7 @@ const adminRoute = createRoute({
 
 const routeTree = rootRoute.addChildren([
   homeRoute,
+  demoReportRoute,
   loginRoute,
   signupRoute,
   recoveryRoute,

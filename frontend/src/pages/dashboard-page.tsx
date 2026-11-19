@@ -1,13 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Building2, Gauge, Telescope } from "lucide-react";
+import { ArrowRight, Plus } from "lucide-react";
 
 import { apiRequest } from "../api/client";
-import { useQuotaStatus } from "../quotas/use-quota";
 import type { WorkspaceSummary } from "../research/types";
 
 export function DashboardPage(): React.JSX.Element {
-  const quota = useQuotaStatus();
   const workspaces = useQuery({
     queryKey: ["workspaces"],
     queryFn: () =>
@@ -15,67 +13,93 @@ export function DashboardPage(): React.JSX.Element {
         "/workspaces",
       ),
   });
-  const standard = quota.data?.tiers.find((item) => item.tier === "standard");
   return (
-    <section className="max-w-6xl">
-      <p className="mb-3 text-sm font-semibold text-[var(--teal)]">
-        Decision desk
-      </p>
-      <h1 className="max-w-4xl font-display text-5xl leading-tight text-[var(--navy)] md:text-6xl">
-        Research that shows its work.
-      </h1>
-      <div className="mt-10 grid gap-px border border-[var(--line)] bg-[var(--line)] md:grid-cols-[1.4fr_1fr]">
-        <Link
-          to="/research"
-          className="group bg-[var(--navy)] p-7 text-white md:p-9"
-        >
-          <Telescope className="text-[var(--signal)]" aria-hidden="true" />
-          <h2 className="mt-8 font-display text-3xl">Start a company brief</h2>
-          <p className="mt-3 max-w-lg leading-7 text-teal-50/75">
-            Resolve an identity, discover competitors, and preserve every
-            accepted source.
-          </p>
-          <span className="mt-8 inline-flex items-center gap-2 font-semibold">
-            Begin research{" "}
-            <ArrowRight
-              className="transition-transform group-hover:translate-x-1"
-              aria-hidden="true"
-              size={18}
-            />
-          </span>
-        </Link>
-        <div className="bg-white p-7 md:p-9">
-          <Gauge className="text-[var(--teal)]" aria-hidden="true" />
-          <h2 className="mt-8 font-display text-2xl">Daily capacity</h2>
-          <p className="mt-3 font-display text-5xl text-[var(--navy)]">
-            {standard?.bypassed ? "∞" : (standard?.remaining ?? "—")}
-          </p>
-          <p className="mt-2 text-sm text-[var(--muted)]">
-            standard runs remaining
-          </p>
-        </div>
-      </div>
-      <div className="mt-10 flex items-center justify-between border-b border-[var(--line)] pb-3">
-        <h2 className="font-display text-2xl">Recent workspaces</h2>
-        <Link to="/workspaces" className="text-sm text-[var(--teal)] underline">
-          View all
-        </Link>
-      </div>
-      <div className="divide-y divide-[var(--line)]">
-        {workspaces.data?.workspaces.slice(0, 4).map((workspace) => (
+    <section className="mx-auto max-w-5xl">
+      <header className="hidden lg:block">
+        <h1 className="page-title">Dashboard</h1>
+      </header>
+
+      <div className="mt-8 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-10">
+        <div className="min-w-0">
           <Link
-            key={workspace.id}
-            to="/workspaces/$workspaceId"
-            params={{ workspaceId: workspace.id }}
-            className="flex min-h-20 items-center justify-between py-4"
+            to="/research"
+            className="pressable group block rounded-[var(--radius-card-lg)] bg-pine p-6 text-white shadow-quiet-lg sm:p-8"
           >
-            <span className="flex items-center gap-3">
-              <Building2 aria-hidden="true" size={18} />
-              <strong>{workspace.name}</strong>
+            <h2 className="max-w-sm font-serif text-3xl font-medium leading-tight">
+              Start a company brief
+            </h2>
+            <p className="mt-3 max-w-sm text-sm leading-6 text-white/80">
+              Investigate a company, its competitors, and the evidence behind
+              your next decision.
+            </p>
+            <span className="mt-8 inline-flex min-h-11 items-center gap-3 rounded-[var(--radius-control)] bg-canvas px-4 py-2 text-sm font-semibold text-pine">
+              Begin research
+              <ArrowRight
+                className="group-hover:translate-x-0.5"
+                aria-hidden="true"
+                size={16}
+              />
             </span>
-            <ArrowRight aria-hidden="true" size={17} />
           </Link>
-        ))}
+
+          <div className="mt-10 flex flex-wrap items-center justify-between gap-3 border-b border-hairline pb-3">
+            <h2 className="section-title">Recent workspaces</h2>
+            <Link to="/workspaces" className="text-link text-sm">
+              View all
+            </Link>
+          </div>
+          <div className="space-y-3">
+            {workspaces.isLoading ? (
+              <p className="py-6 text-sm text-ink-secondary">
+                Loading workspaces…
+              </p>
+            ) : null}
+            {workspaces.data?.workspaces.slice(0, 4).map((workspace) => (
+              <Link
+                key={workspace.id}
+                to="/workspaces/$workspaceId"
+                params={{ workspaceId: workspace.id }}
+                className="group flex min-h-20 items-center justify-between gap-5 rounded-xl border border-hairline bg-surface px-4 py-4 shadow-quiet hover:bg-subtle/40 sm:px-5"
+              >
+                <span className="min-w-0">
+                  <strong className="block break-words font-serif text-xl font-medium">
+                    {workspace.name}
+                  </strong>
+                  {workspace.description ? (
+                    <span className="mt-1 line-clamp-2 break-words text-sm leading-6 text-ink-secondary">
+                      {workspace.description}
+                    </span>
+                  ) : null}
+                </span>
+                <ArrowRight
+                  className="shrink-0 text-ink-secondary group-hover:translate-x-0.5 group-hover:text-teal"
+                  aria-hidden="true"
+                  size={16}
+                />
+              </Link>
+            ))}
+            {workspaces.data?.total === 0 ? (
+              <div className="rounded-xl border border-dashed border-hairline bg-surface/60 px-5 py-6">
+                <p className="text-sm text-ink-secondary">No workspaces yet.</p>
+                <Link
+                  to="/workspaces"
+                  className="text-link mt-2 inline-block text-sm"
+                >
+                  Create a workspace
+                </Link>
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        <aside className="min-w-0 space-y-6" aria-label="Dashboard shortcuts">
+          <Link
+            to="/workspaces"
+            className="text-link inline-flex min-h-11 items-center gap-2 text-sm font-medium"
+          >
+            <Plus aria-hidden="true" size={16} /> New workspace
+          </Link>
+        </aside>
       </div>
     </section>
   );

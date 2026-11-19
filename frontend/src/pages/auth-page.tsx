@@ -1,8 +1,10 @@
 import { Link, useNavigate } from "@tanstack/react-router";
+import { Eye, EyeOff } from "lucide-react";
 import { type FormEvent, useState } from "react";
 
 import { apiRequest } from "../api/client";
 import { useAuth } from "../auth/auth-context";
+import { AuthLayout } from "../components/auth-layout";
 
 type AuthPageMode = "login" | "signup" | "recover" | "reset";
 
@@ -15,13 +17,13 @@ const content: Record<
   { title: string; description: string; action: string }
 > = {
   login: {
-    title: "Return to your research",
-    description: "Continue building evidence-backed company dossiers.",
+    title: "Sign in",
+    description: "Access your workspace.",
     action: "Sign in",
   },
   signup: {
-    title: "Create your analyst workspace",
-    description: "Turn scattered company sources into reusable intelligence.",
+    title: "Create an account",
+    description: "Start your research.",
     action: "Create account",
   },
   recover: {
@@ -100,105 +102,156 @@ export function AuthPage({ mode }: AuthPageProps): React.JSX.Element {
     mode === "login" || mode === "signup" || mode === "reset";
 
   return (
-    <main className="grid min-h-screen bg-[var(--paper)] lg:grid-cols-[0.85fr_1.15fr]">
-      <section className="hidden bg-[var(--navy)] p-12 text-white lg:flex lg:flex-col lg:justify-between">
-        <Link to="/login" className="font-display text-2xl">
-          Compass Intelligence
-        </Link>
-        <blockquote className="max-w-md font-display text-4xl leading-tight">
-          “What do we know, how do we know it, and what remains uncertain?”
-        </blockquote>
-        <p className="text-sm text-teal-100/65">
-          A research desk built around evidence provenance.
-        </p>
-      </section>
-      <section className="flex items-center justify-center p-6 md:p-12">
-        <div className="w-full max-w-md">
-          <p className="mb-4 text-sm font-semibold text-[var(--teal)]">
-            Secure analyst access
+    <AuthLayout title={page.title} description={page.description}>
+      <form
+        onSubmit={handleSubmit}
+        aria-busy={isSubmitting}
+        className="mt-8 space-y-5"
+      >
+        {mode === "signup" ? (
+          <label className="block text-sm font-medium">
+            Full name
+            <input
+              name="fullName"
+              required
+              className="form-input"
+              autoComplete="name"
+            />
+          </label>
+        ) : null}
+        {showEmail ? (
+          <label className="block text-sm font-medium">
+            Email address
+            <input
+              name="email"
+              type="email"
+              required
+              className="form-input"
+              autoComplete="email"
+              autoCapitalize="none"
+              spellCheck={false}
+            />
+          </label>
+        ) : null}
+        {showPassword ? (
+          <PasswordField
+            key={mode}
+            label={mode === "reset" ? "New password" : "Password"}
+            minLength={mode === "login" ? 1 : 12}
+            autoComplete={
+              mode === "login" ? "current-password" : "new-password"
+            }
+            guidanceId={mode === "signup" ? "password-guidance" : undefined}
+          />
+        ) : null}
+        {mode === "signup" ? (
+          <p id="password-guidance" className="text-sm text-ink-secondary">
+            At least 12 characters.
           </p>
-          <h1 className="font-display text-4xl leading-tight text-[var(--navy)]">
-            {page.title}
-          </h1>
-          <p className="mt-3 leading-7 text-[var(--muted)]">
-            {page.description}
+        ) : null}
+        {error ? (
+          <p
+            role="alert"
+            className="rounded-md bg-red-50 p-3 text-sm text-red-800"
+          >
+            {error}
           </p>
-          <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-            {mode === "signup" ? (
-              <label className="block text-sm font-medium">
-                Full name
-                <input
-                  name="fullName"
-                  required
-                  className="form-input"
-                  autoComplete="name"
-                />
-              </label>
-            ) : null}
-            {showEmail ? (
-              <label className="block text-sm font-medium">
-                Email address
-                <input
-                  name="email"
-                  type="email"
-                  required
-                  className="form-input"
-                  autoComplete="email"
-                />
-              </label>
-            ) : null}
-            {showPassword ? (
-              <label className="block text-sm font-medium">
-                {mode === "reset" ? "New password" : "Password"}
-                <input
-                  name="password"
-                  type="password"
-                  minLength={mode === "login" ? 1 : 12}
-                  required
-                  className="form-input"
-                  autoComplete={
-                    mode === "login" ? "current-password" : "new-password"
-                  }
-                />
-              </label>
-            ) : null}
-            {error ? (
-              <p role="alert" className="bg-red-50 p-3 text-sm text-red-800">
-                {error}
-              </p>
-            ) : null}
-            {message ? (
-              <output className="block bg-emerald-50 p-3 text-sm text-emerald-900">
-                {message}
-              </output>
-            ) : null}
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="min-h-12 w-full bg-[var(--navy)] px-5 font-semibold text-white hover:bg-[var(--navy-light)] disabled:opacity-60"
-            >
-              {isSubmitting ? "Working…" : page.action}
-            </button>
-          </form>
-          <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-[var(--muted)]">
-            {mode !== "login" ? (
-              <Link to="/login" className="underline">
-                Sign in
-              </Link>
-            ) : null}
-            {mode === "login" ? (
-              <Link to="/signup" className="underline">
-                Create account
-              </Link>
-            ) : null}
-            {mode === "login" ? (
-              <Link to="/recover-password" className="underline">
-                Forgot password?
-              </Link>
-            ) : null}
-          </div>
-        </div>
-      </section>
-    </main>
+        ) : null}
+        {message ? (
+          <output className="block rounded-md bg-emerald-50 p-3 text-sm text-emerald-900">
+            {message}
+          </output>
+        ) : null}
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="button-primary min-h-12 w-full"
+        >
+          {isSubmitting ? "Working…" : page.action}
+        </button>
+      </form>
+      <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-ink-secondary">
+        {mode === "signup" ? (
+          <p className="flex min-h-11 items-center gap-1.5">
+            <span>Already registered?</span>
+            <Link to="/login" className="text-link font-medium">
+              Sign in
+            </Link>
+          </p>
+        ) : null}
+        {mode === "recover" || mode === "reset" ? (
+          <Link
+            to="/login"
+            className="text-link inline-flex min-h-11 items-center"
+          >
+            Sign in
+          </Link>
+        ) : null}
+        {mode === "login" ? (
+          <Link
+            to="/signup"
+            className="text-link inline-flex min-h-11 items-center"
+          >
+            Create account
+          </Link>
+        ) : null}
+        {mode === "login" ? (
+          <Link
+            to="/recover-password"
+            className="text-link inline-flex min-h-11 items-center"
+          >
+            Forgot password?
+          </Link>
+        ) : null}
+      </div>
+    </AuthLayout>
+  );
+}
+
+interface PasswordFieldProps {
+  label: string;
+  minLength: number;
+  autoComplete: "current-password" | "new-password";
+  guidanceId?: string;
+}
+
+function PasswordField({
+  label,
+  minLength,
+  autoComplete,
+  guidanceId,
+}: PasswordFieldProps): React.JSX.Element {
+  const [isVisible, setIsVisible] = useState(false);
+  return (
+    <div>
+      <label htmlFor="auth-password" className="block text-sm font-medium">
+        {label}
+      </label>
+      <span className="relative mt-2 block">
+        <input
+          id="auth-password"
+          name="password"
+          type={isVisible ? "text" : "password"}
+          minLength={minLength}
+          required
+          className="form-input form-input--embedded"
+          autoComplete={autoComplete}
+          aria-describedby={guidanceId}
+        />
+        <button
+          type="button"
+          onClick={() => setIsVisible((current) => !current)}
+          className="absolute inset-y-1 right-1 grid w-10 place-items-center rounded-md text-ink-secondary hover:bg-subtle hover:text-ink"
+          aria-label={isVisible ? "Hide password" : "Show password"}
+          aria-pressed={isVisible}
+        >
+          {isVisible ? (
+            <EyeOff aria-hidden="true" size={18} />
+          ) : (
+            <Eye aria-hidden="true" size={18} />
+          )}
+        </button>
+      </span>
+    </div>
   );
 }
