@@ -10,7 +10,6 @@ from pydantic import BaseModel
 from app.agent.state import (
     ClaimVerification,
     EvidenceDraft,
-    RejectedEvidence,
     ResearchGraphContext,
     ResearchState,
     VerificationSummary,
@@ -31,11 +30,16 @@ from app.research_tools.analysis import (
     targeted_additional_research,
 )
 from app.research_tools.company import (
+    CompanyProfile,
     ExtractCompanyProfileInput,
     ExtractProductAndPricingInput,
+    FetchedSource,
     FetchWebPageInput,
+    ProductAndPricingProfile,
+    ProfileField,
     ResolveCompanyIdentityInput,
     SearchCompanySourcesInput,
+    SourceRecord,
     extract_company_profile,
     extract_product_and_pricing,
     fetch_web_page,
@@ -55,7 +59,13 @@ from app.research_tools.reporting import (
     VerifyReportClaimsInput,
     verify_report_claims,
 )
-from app.streaming.events import GraphStageEnded, GraphStageStarted, ToolEnded, ToolStarted
+from app.streaming.events import (
+    EvidenceRejected,
+    GraphStageEnded,
+    GraphStageStarted,
+    ToolEnded,
+    ToolStarted,
+)
 
 ToolInput = TypeVar("ToolInput", bound=BaseModel)
 ToolOutput = TypeVar("ToolOutput", bound=BaseModel)
@@ -97,6 +107,56 @@ def create_research_plan(state: ResearchState) -> dict[str, object]:
     }
 
 
+def _fetch_available_sources(
+    sources: list[SourceRecord],
+    maximum: int,
+    graph_context: ResearchGraphContext,
+) -> list[FetchedSource]:
+    fetched: list[FetchedSource] = []
+    for source in sources[:maximum]:
+        try:
+            fetched.append(
+                run_tool(
+                    "fetch_web_page",
+                    FetchWebPageInput(url=source.url),
+                    fetch_web_page,
+                    graph_context,
+                )
+            )
+        except ExternalProviderError as error:
+            graph_context.emit(
+                EvidenceRejected(
+                    evidence_id=uuid4(),
+                    claim=f"Rejected source: {source.title}",
+                    source_url=source.url,
+                    reason=str(error),
+                    confidence=0,
+                )
+            )
+    return fetched
+
+
+def _unavailable_profile(company_name: str) -> CompanyProfile:
+    def unavailable_field() -> ProfileField:
+        return ProfileField(
+            value=None,
+            classification="unavailable_information",
+            source_urls=[],
+        )
+
+    return CompanyProfile(
+        company_name=company_name,
+        legal_name=unavailable_field(),
+        industry=unavailable_field(),
+        headquarters=unavailable_field(),
+        products=[],
+        target_customers=[],
+        positioning=unavailable_field(),
+        geographies=[],
+        business_model=unavailable_field(),
+    )
+
+
 def research_official_sources(
     state: ResearchState,
     runtime: Runtime[ResearchGraphContext],
@@ -112,20 +172,16 @@ def research_official_sources(
         search_company_sources,
         runtime.context,
     )
-    fetched = [
+    fetched = _fetch_available_sources(search.sources, 6, runtime.context)
+    profile = (
         run_tool(
-            "fetch_web_page",
-            FetchWebPageInput(url=source.url),
-            fetch_web_page,
+            "extract_company_profile",
+            ExtractCompanyProfileInput(company=company, sources=fetched),
+            extract_company_profile,
             runtime.context,
         )
-        for source in search.sources[:6]
-    ]
-    profile = run_tool(
-        "extract_company_profile",
-        ExtractCompanyProfileInput(company=company, sources=fetched),
-        extract_company_profile,
-        runtime.context,
+        if fetched
+        else _unavailable_profile(company.canonical_name)
     )
     return {"sources": search.sources, "fetched_sources": fetched, "company_profile": profile}
 
@@ -144,23 +200,29 @@ def research_product_and_pricing(
         search_company_sources,
         runtime.context,
     )
-    fetched = [
+    fetched = _fetch_available_sources(source_search.sources, 5, runtime.context)
+    pricing = (
         run_tool(
-            "fetch_web_page",
-            FetchWebPageInput(url=source.url),
-            fetch_web_page,
+            "extract_product_and_pricing",
+            ExtractProductAndPricingInput(
+                company=state["canonical_company"],
+                sources=fetched,
+            ),
+            extract_product_and_pricing,
             runtime.context,
         )
-        for source in source_search.sources[:5]
-    ]
-    pricing = run_tool(
-        "extract_product_and_pricing",
-        ExtractProductAndPricingInput(
-            company=state["canonical_company"],
-            sources=fetched,
-        ),
-        extract_product_and_pricing,
-        runtime.context,
+        if fetched
+        else ProductAndPricingProfile(
+            products=[],
+            plans=[],
+            pricing_model=ProfileField(
+                value=None,
+                classification="unavailable_information",
+                source_urls=[],
+            ),
+            differentiators=[],
+            unavailable_information=["No supported product or pricing pages were retrieved"],
+        )
     )
     return {"product_and_pricing": pricing}
 
@@ -196,15 +258,9 @@ def discover_competitor_set(
         search_company_sources,
         runtime.context,
     )
-    fetched = [
-        run_tool(
-            "fetch_web_page",
-            FetchWebPageInput(url=source.url),
-            fetch_web_page,
-            runtime.context,
-        )
-        for source in source_search.sources[:3]
-    ]
+    fetched = _fetch_available_sources(source_search.sources, 3, runtime.context)
+    if not fetched:
+        return {"competitors": []}
     profile = run_tool(
         "extract_company_profile",
         ExtractCompanyProfileInput(company=state["canonical_company"], sources=fetched),
@@ -268,15 +324,27 @@ def research_discovered_competitors(
     state: ResearchState,
     runtime: Runtime[ResearchGraphContext],
 ) -> dict[str, object]:
-    researched = [
-        run_tool(
-            "research_competitor",
-            ResearchCompetitorInput(candidate=candidate),
-            research_competitor,
-            runtime.context,
-        )
-        for candidate in state.get("competitors", [])[:4]
-    ]
+    researched = []
+    for candidate in state.get("competitors", [])[:4]:
+        try:
+            researched.append(
+                run_tool(
+                    "research_competitor",
+                    ResearchCompetitorInput(candidate=candidate),
+                    research_competitor,
+                    runtime.context,
+                )
+            )
+        except ExternalProviderError as error:
+            runtime.context.emit(
+                EvidenceRejected(
+                    evidence_id=uuid4(),
+                    claim=f"Rejected competitor research: {candidate.name}",
+                    source_url=candidate.website or "",
+                    reason=str(error),
+                    confidence=0,
+                )
+            )
     return {"competitor_research": researched}
 
 
@@ -342,26 +410,7 @@ def targeted_gap_research(
         targeted_additional_research,
         runtime.context,
     )
-    fetched = []
-    rejected = []
-    for source in result.sources[:3]:
-        try:
-            fetched.append(
-                run_tool(
-                    "fetch_web_page",
-                    FetchWebPageInput(url=source.url),
-                    fetch_web_page,
-                    runtime.context,
-                )
-            )
-        except ExternalProviderError as error:
-            rejected.append(
-                RejectedEvidence(
-                    title=source.title,
-                    source_url=source.url,
-                    reason=str(error),
-                )
-            )
+    fetched = _fetch_available_sources(result.sources, 3, runtime.context)
     additional_evidence = [
         EvidenceDraft(
             claim=f"Targeted evidence for: {gaps[0].question}",
@@ -379,7 +428,6 @@ def targeted_gap_research(
         "sources": [*state.get("sources", []), *result.sources],
         "fetched_sources": [*state.get("fetched_sources", []), *fetched],
         "evidence_records": [*state.get("evidence_records", []), *additional_evidence],
-        "rejected_evidence": [*state.get("rejected_evidence", []), *rejected],
         "loop_count": state["loop_count"] + 1,
     }
 

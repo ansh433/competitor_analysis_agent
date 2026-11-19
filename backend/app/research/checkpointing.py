@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from app.agent.context_engine import PackedConversationContext
-from app.agent.state import EvidenceDraft, RejectedEvidence, ResearchState, VerificationSummary
+from app.agent.state import EvidenceDraft, ResearchState, VerificationSummary
 from app.core.db import get_engine
 from app.core.errors import ResourceNotFoundError
 from app.research.models import ResearchRun
@@ -116,7 +116,6 @@ def deserialize_research_state(data: dict[str, object]) -> ResearchState:
         "competitors": CompetitorCandidate,
         "competitor_research": CompetitorResearch,
         "evidence_records": EvidenceDraft,
-        "rejected_evidence": RejectedEvidence,
         "research_gaps": ResearchGap,
         "draft_claims": MaterialReportClaim,
     }
