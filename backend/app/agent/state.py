@@ -60,6 +60,7 @@ class ResearchState(TypedDict):
     loop_count: int
     maximum_gap_loops: int
     conversation_context: NotRequired[PackedConversationContext]
+    resume_from_stage: NotRequired[str]
     canonical_company: NotRequired[ResolvedCompanyIdentity]
     research_plan: NotRequired[list[str]]
     sources: NotRequired[list[SourceRecord]]
@@ -86,3 +87,6 @@ class ResearchState(TypedDict):
 class ResearchGraphContext:
     tools: ResearchToolContext
     emit: Callable[[StreamPayload], None]
+    checkpoint: Callable[[str, dict[str, object], str], None] = lambda _stage, _update, _outcome: (
+        None
+    )

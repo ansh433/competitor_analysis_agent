@@ -6,7 +6,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 from pydantic import BaseModel, ValidationError
 
-from app.core.errors import ExternalProviderError
+from app.core.errors import ExternalProviderError, RetryableExternalProviderError
 from app.providers.base import ResponseModel
 
 
@@ -105,7 +105,7 @@ class GoogleGeminiModelProvider:
                 if not _is_retryable_provider_error(error):
                     raise
 
-        raise ExternalProviderError(
+        raise RetryableExternalProviderError(
             f"Gemini task '{task_name}' failed after trying {attempted} configured key(s)"
         )
 

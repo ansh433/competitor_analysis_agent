@@ -20,12 +20,17 @@ export interface ResearchRunArtifact {
   company_id: string;
   conversation_id: string;
   objective: string;
-  status: "pending" | "running" | "completed" | "failed";
+  status: "pending" | "running" | "paused" | "completed" | "failed";
   model_used: string;
   final_report: string | null;
   confidence_score: number | null;
   coverage_score: number | null;
   error_message: string | null;
+  last_completed_stage: string | null;
+  resume_stage: string | null;
+  checkpoint_version: number;
+  resume_count: number;
+  resumed_at: string | null;
   evidence: EvidenceArtifact[];
   comparison_id: string | null;
 }

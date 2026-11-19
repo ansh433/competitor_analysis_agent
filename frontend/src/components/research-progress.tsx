@@ -27,6 +27,7 @@ interface ResearchProgressProps {
   gaps: Array<{ gapId: string; question: string; reportSection: string }>;
   comparison: Record<string, unknown> | null;
   conversationId: string | null;
+  isPaused: boolean;
 }
 
 export function ResearchProgress({
@@ -39,6 +40,7 @@ export function ResearchProgress({
   gaps,
   comparison,
   conversationId,
+  isPaused,
 }: ResearchProgressProps): React.JSX.Element {
   return (
     <section
@@ -103,7 +105,7 @@ export function ResearchProgress({
         <div className="flex items-center justify-between border-b border-[var(--line)] px-6 py-4">
           <h2 className="font-display text-2xl">Live research notes</h2>
           <span className="text-sm text-[var(--muted)]">
-            {isFinished ? "Complete" : "In progress"}
+            {isPaused ? "Paused" : isFinished ? "Complete" : "In progress"}
           </span>
         </div>
         <div className="min-h-64 p-6 leading-7">

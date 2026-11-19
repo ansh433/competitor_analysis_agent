@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
-import { BookmarkPlus, ExternalLink } from "lucide-react";
+import { AlertTriangle, BookmarkPlus, ExternalLink, Play } from "lucide-react";
 
 import { apiRequest } from "../api/client";
 import { DossierReport } from "../components/dossier-report";
 import type { ResearchRunArtifact } from "../research/artifact-types";
 import type { CompanySummary, TrackedCompanySummary } from "../research/types";
+import { postResearchStream } from "../streaming/research-stream";
 
 export function CompanyDetailPage(): React.JSX.Element {
   const { companyId } = useParams({ strict: false }) as { companyId: string };
@@ -30,6 +31,26 @@ export function CompanyDetailPage(): React.JSX.Element {
       }),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: ["tracked-companies"] }),
+  });
+  const resumeRun = useMutation({
+    mutationFn: async (runId: string) => {
+      for await (const event of postResearchStream(
+        `/research-runs/${runId}/resume`,
+        {},
+      )) {
+        if (event.payload.kind === "error") {
+          throw new Error(event.payload.message);
+        }
+      }
+    },
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["company-latest-run", companyId],
+        }),
+        queryClient.invalidateQueries({ queryKey: ["company", companyId] }),
+      ]);
+    },
   });
 
   return (
@@ -94,6 +115,42 @@ export function CompanyDetailPage(): React.JSX.Element {
         >
           Visit official website <ExternalLink aria-hidden="true" size={15} />
         </a>
+      ) : null}
+      {latestRun.data?.status === "paused" ? (
+        <div className="mt-8 flex items-start justify-between gap-6 border border-amber-300 bg-amber-50 p-5 text-amber-950">
+          <div className="flex gap-3">
+            <AlertTriangle
+              className="mt-0.5 shrink-0"
+              aria-hidden="true"
+              size={20}
+            />
+            <div>
+              <h2 className="font-semibold">Research paused</h2>
+              <p className="mt-1 text-sm">
+                Resume from{" "}
+                {latestRun.data.resume_stage?.replaceAll("_", " ") ??
+                  "the saved checkpoint"}
+                .
+              </p>
+              {resumeRun.error ? (
+                <p role="alert" className="mt-2 text-sm">
+                  {resumeRun.error.message}
+                </p>
+              ) : null}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              if (latestRun.data) resumeRun.mutate(latestRun.data.id);
+            }}
+            disabled={resumeRun.isPending}
+            className="inline-flex min-h-11 shrink-0 items-center gap-2 bg-[var(--navy)] px-4 font-semibold text-white disabled:opacity-50"
+          >
+            <Play aria-hidden="true" size={17} />
+            {resumeRun.isPending ? "Resuming…" : "Resume research"}
+          </button>
+        </div>
       ) : null}
       {latestRun.data?.final_report ? (
         <div className="mt-12 border-t border-[var(--line)] pt-8">

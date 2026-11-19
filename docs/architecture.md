@@ -26,6 +26,8 @@ Every owned lookup includes the authenticated user directly or joins through an 
 
 Research-run creation locks and consumes the relevant quota in the same database transaction that creates the run. The stream runner executes the graph in a worker, emits live typed events, and persists the event ledger independently as events are delivered.
 
+After every completed graph node, the run stores a typed JSON checkpoint, last completed stage, and next resumable stage. Retryable provider exhaustion marks the same run `PAUSED`; resuming reuses its quota, conversation, cached source/profile outputs, and evidence drafts.
+
 ## Context management
 
 The context engine always emits the system instruction first. It retains recent dialogue pairs, uses BM25 to recall relevant older turns, extracts company/domain/topic terms, and persists a model-generated conversation summary after the configured threshold. Recalled assistant content is labelled `ASSISTANT_CONTEXT_NOT_EVIDENCE` and cannot satisfy citation verification.

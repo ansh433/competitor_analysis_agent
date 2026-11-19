@@ -10,6 +10,7 @@ The application is designed for founders, product marketers, strategy teams, con
 - Per-user standard and upgraded-model daily quotas with transactional research-run creation
 - Tenant-isolated workspaces, companies, conversations, branches, evidence, reports, and comparisons
 - Explicit LangGraph `StateGraph` with parallel research branches and a bounded evidence-gap loop
+- Durable per-node research checkpoints with pause/resume for retryable provider exhaustion
 - Gemini model adapter, Tavily search adapter, safe HTTP retrieval, and deterministic test providers
 - Typed Protobuf events transported as base64 payloads over SSE
 - Persisted stage/tool timelines with per-tool duration

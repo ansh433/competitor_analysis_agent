@@ -169,6 +169,8 @@ def persist_research_artifact(
     research_run.final_report = tool_input.report_markdown
     research_run.confidence_score = tool_input.confidence_score
     research_run.coverage_score = tool_input.coverage_score
+    research_run.error_message = None
+    research_run.resume_stage = None
     session.add(research_run)
     session.add(
         ChatMessage(

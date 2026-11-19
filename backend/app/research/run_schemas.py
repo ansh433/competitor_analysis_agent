@@ -34,6 +34,11 @@ class ResearchRunResponse(BaseModel):
     confidence_score: float | None
     coverage_score: float | None
     error_message: str | None
+    last_completed_stage: str | None
+    resume_stage: str | None
+    checkpoint_version: int
+    resume_count: int
+    resumed_at: datetime | None
     created_at: datetime
     started_at: datetime | None
     completed_at: datetime | None

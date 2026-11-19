@@ -790,7 +790,24 @@ def build_competitor_research_graph():
     builder.add_node(
         "persist_artifacts", stage_node("persist_artifacts", 15, persist_artifacts, False)
     )
-    builder.add_edge(START, "validate_request")
+    builder.add_conditional_edges(
+        START,
+        route_graph_entry,
+        [
+            "validate_request",
+            "resolve_company",
+            "create_research_plan",
+            "normalize_evidence",
+            "research_discovered_competitors",
+            "build_comparison",
+            "identify_evidence_gaps",
+            "targeted_gap_research",
+            "synthesize_dossier",
+            "verify_claims_and_citations",
+            "revise_dossier",
+            "persist_artifacts",
+        ],
+    )
     builder.add_edge("validate_request", "resolve_company")
     builder.add_edge("resolve_company", "create_research_plan")
     builder.add_edge("create_research_plan", "research_official_sources")
@@ -842,16 +859,22 @@ def stage_node(
         try:
             result = node(state, runtime) if uses_runtime else node(state)
         except Exception:
+            runtime.context.checkpoint(name, {}, "failed")
             runtime.context.emit(
                 GraphStageEnded(stage_name=name, stage_index=index, detail=f"Failed {name}")
             )
             raise
+        runtime.context.checkpoint(name, result, "completed")
         runtime.context.emit(
             GraphStageEnded(stage_name=name, stage_index=index, detail=f"Completed {name}")
         )
         return result
 
     return wrapped
+
+
+def route_graph_entry(state: ResearchState) -> str:
+    return state.get("resume_from_stage", "validate_request")
 
 
 COMPETITOR_RESEARCH_GRAPH = build_competitor_research_graph()

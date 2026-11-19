@@ -33,3 +33,7 @@ class QuotaExceededError(DomainError):
 class ExternalProviderError(DomainError):
     code = "external_provider_error"
     status_code = 503
+
+
+class RetryableExternalProviderError(ExternalProviderError):
+    code = "retryable_external_provider_error"

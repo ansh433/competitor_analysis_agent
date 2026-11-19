@@ -1,6 +1,6 @@
 # Integration testing
 
-There are no helper-level unit tests. Backend tests exercise migrations, the ASGI application, authentication, SQLModel persistence, tenant boundaries, quotas, the compiled graph, deterministic providers, SSE/Protobuf framing, event persistence, citation verification, gap-loop enforcement, artifact persistence, and provider failures.
+There are no helper-level unit tests. Backend tests exercise migrations, the ASGI application, authentication, SQLModel persistence, tenant boundaries, quotas, the compiled graph, deterministic providers, SSE/Protobuf framing, event persistence, citation verification, gap-loop enforcement, artifact persistence, provider failures, durable pause/resume, and single-consumption quota behavior across resume.
 
 ```bash
 cd backend

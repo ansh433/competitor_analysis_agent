@@ -2,7 +2,13 @@ import os
 
 import pytest
 
-from app.core.errors import ExternalProviderError
+from app.core.errors import ExternalProviderError, RetryableExternalProviderError
+from app.providers.base import ResearchProviders, ResponseModel
+from app.providers.deterministic import (
+    DeterministicModelProvider,
+    DeterministicPageFetcher,
+    DeterministicSearchProvider,
+)
 from tests.client import IntegrationClient
 
 pytestmark = pytest.mark.integration
@@ -186,7 +192,74 @@ def test_provider_failure_marks_run_failed_and_streams_typed_error(
     assert event_names(stream.text) == ["error", "finished"]
     detail = client.get(f"/api/v1/research-runs/{research_run['id']}", headers=headers)
     assert detail.json()["status"] == "failed"
-    assert detail.json()["error_message"] == "ExternalProviderError"
+    assert detail.json()["error_message"].startswith("ExternalProviderError")
+
+
+def test_retryable_provider_failure_pauses_and_resumes_from_checkpoint(
+    client: IntegrationClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FailCompetitorDiscoveryOnce(DeterministicModelProvider):
+        failed = False
+
+        def generate_structured(
+            self,
+            system_prompt: str,
+            user_prompt: str,
+            schema: type[ResponseModel],
+            *,
+            task_name: str | None = None,
+        ) -> ResponseModel:
+            if schema.__name__ == "CompetitorDiscovery" and not self.failed:
+                self.failed = True
+                raise RetryableExternalProviderError("temporary competitor discovery limit")
+            return super().generate_structured(
+                system_prompt,
+                user_prompt,
+                schema,
+                task_name=task_name,
+            )
+
+    providers = ResearchProviders(
+        search=DeterministicSearchProvider(),
+        pages=DeterministicPageFetcher(),
+        model=FailCompetitorDiscoveryOnce(),
+    )
+    monkeypatch.setattr(
+        "app.research.stream_runner.build_research_providers",
+        lambda *_args, **_kwargs: providers,
+    )
+    headers = create_user_headers(client, "resume")
+    workspace_id = create_workspace(client, headers, "Resume workspace")
+    quota_before = client.get("/api/v1/quotas/me", headers=headers).json()
+    research_run = create_run(client, headers, workspace_id)
+
+    first_stream = client.post(
+        f"/api/v1/research-runs/{research_run['id']}/stream",
+        headers=headers,
+    )
+    assert "error" in event_names(first_stream.text)
+    paused = client.get(f"/api/v1/research-runs/{research_run['id']}", headers=headers).json()
+    assert paused["status"] == "paused"
+    assert paused["resume_stage"] == "create_research_plan"
+    assert paused["checkpoint_version"] > 0
+
+    resumed_stream = client.post(
+        f"/api/v1/research-runs/{research_run['id']}/resume",
+        headers=headers,
+    )
+    assert resumed_stream.status_code == 200
+    assert "final_report_artifact" in event_names(resumed_stream.text)
+    completed = client.get(f"/api/v1/research-runs/{research_run['id']}", headers=headers).json()
+    assert completed["status"] == "completed"
+    assert completed["resume_count"] == 1
+    assert completed["resume_stage"] is None
+    assert "## 15. Evidence ledger" in completed["final_report"]
+
+    quota_after = client.get("/api/v1/quotas/me", headers=headers).json()
+    before_used = next(item["used"] for item in quota_before["tiers"] if item["tier"] == "standard")
+    after_used = next(item["used"] for item in quota_after["tiers"] if item["tier"] == "standard")
+    assert after_used == before_used + 1
 
 
 def test_long_conversation_persists_summary_before_research(

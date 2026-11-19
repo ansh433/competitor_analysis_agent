@@ -6,10 +6,17 @@ from sqlmodel import Session, select
 from app.conversations.models import Conversation
 from app.conversations.service import get_owned_conversation
 from app.core.config import Settings
-from app.core.errors import ResourceNotFoundError
+from app.core.errors import ResourceConflictError, ResourceNotFoundError
 from app.quotas.models import ModelTier
 from app.quotas.service import lock_and_consume_quota
-from app.research.models import Company, CompanyComparison, Evidence, ResearchRun, ResearchWorkspace
+from app.research.models import (
+    Company,
+    CompanyComparison,
+    Evidence,
+    ResearchRun,
+    ResearchRunStatus,
+    ResearchWorkspace,
+)
 from app.research.run_schemas import CreateResearchRunRequest
 from app.research.service import get_owned_workspace
 from app.users.models import User
@@ -61,6 +68,18 @@ def get_owned_research_run(session: Session, user_id: UUID, run_id: UUID) -> Res
     if not research_run:
         raise ResourceNotFoundError("Research run not found")
     return research_run
+
+
+def require_research_run_startable(research_run: ResearchRun) -> None:
+    if research_run.status != ResearchRunStatus.PENDING:
+        raise ResourceConflictError("Research run has already been started")
+
+
+def require_research_run_resumable(research_run: ResearchRun) -> None:
+    if research_run.status != ResearchRunStatus.PAUSED:
+        raise ResourceConflictError("Research run is not paused")
+    if not research_run.checkpoint_state or not research_run.resume_stage:
+        raise ResourceConflictError("Research run does not have a resumable checkpoint")
 
 
 def get_latest_company_research_run(

@@ -31,6 +31,7 @@ class CompanyResearchStatus(StrEnum):
 class ResearchRunStatus(StrEnum):
     PENDING = "pending"
     RUNNING = "running"
+    PAUSED = "paused"
     COMPLETED = "completed"
     FAILED = "failed"
 
@@ -151,6 +152,14 @@ class ResearchRun(TimestampedModel, table=True):
     confidence_score: float | None = Field(default=None)
     coverage_score: float | None = Field(default=None)
     error_message: str | None = Field(default=None)
+    checkpoint_state: dict[str, object] | None = Field(
+        default=None, sa_column=Column(JSON_DOCUMENT, nullable=True)
+    )
+    last_completed_stage: str | None = Field(default=None, max_length=128)
+    resume_stage: str | None = Field(default=None, max_length=128)
+    checkpoint_version: int = Field(default=0, nullable=False)
+    resume_count: int = Field(default=0, nullable=False)
+    resumed_at: datetime | None = Field(default=None, nullable=True)
 
 
 class Evidence(TimestampedModel, table=True):

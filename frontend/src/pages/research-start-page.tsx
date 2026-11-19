@@ -29,6 +29,7 @@ interface ResearchViewState {
   comparison: Record<string, unknown> | null;
   conversationId: string | null;
   researchRunId: string | null;
+  isPaused: boolean;
 }
 
 const initialResearchState: ResearchViewState = {
@@ -43,6 +44,7 @@ const initialResearchState: ResearchViewState = {
   comparison: null,
   conversationId: null,
   researchRunId: null,
+  isPaused: false,
 };
 
 export function ResearchStartPage(): React.JSX.Element {
@@ -99,6 +101,32 @@ export function ResearchStartPage(): React.JSX.Element {
       setResearch((current) => ({
         ...current,
         error: error instanceof Error ? error.message : "Research failed",
+      }));
+    } finally {
+      setIsRunning(false);
+    }
+  }
+
+  async function handleResumeResearch(): Promise<void> {
+    if (!research.researchRunId) return;
+    setIsRunning(true);
+    setResearch((current) => ({
+      ...current,
+      error: null,
+      isPaused: false,
+      isFinished: false,
+    }));
+    try {
+      for await (const event of postResearchStream(
+        `/research-runs/${research.researchRunId}/resume`,
+        {},
+      )) {
+        setResearch((current) => applyPayload(current, event.payload));
+      }
+    } catch (error) {
+      setResearch((current) => ({
+        ...current,
+        error: error instanceof Error ? error.message : "Resume failed",
       }));
     } finally {
       setIsRunning(false);
@@ -227,9 +255,19 @@ export function ResearchStartPage(): React.JSX.Element {
         </aside>
       </div>
       {research.error ? (
-        <p role="alert" className="mt-6 bg-red-50 p-4 text-red-800">
-          {research.error}
-        </p>
+        <div role="alert" className="mt-6 bg-amber-50 p-4 text-amber-950">
+          <p>{research.error}</p>
+          {research.isPaused ? (
+            <button
+              type="button"
+              onClick={() => void handleResumeResearch()}
+              disabled={isRunning}
+              className="mt-4 min-h-11 bg-[var(--navy)] px-5 font-semibold text-white disabled:opacity-50"
+            >
+              {isRunning ? "Resuming…" : "Resume research"}
+            </button>
+          ) : null}
+        </div>
       ) : null}
       {isRunning || research.stages.length > 0 ? (
         <ResearchProgress {...research} />
@@ -338,7 +376,12 @@ function applyPayload(
     return { ...state, streamedText: state.streamedText + payload.text };
   if (payload.kind === "final_report_artifact")
     return { ...state, streamedText: payload.reportMarkdown };
-  if (payload.kind === "error") return { ...state, error: payload.message };
+  if (payload.kind === "error")
+    return {
+      ...state,
+      error: payload.message,
+      isPaused: payload.code === "research_run_paused",
+    };
   if (payload.kind === "finished") return { ...state, isFinished: true };
   return state;
 }

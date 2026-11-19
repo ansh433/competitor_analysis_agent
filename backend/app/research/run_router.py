@@ -20,6 +20,8 @@ from app.research.run_service import (
     get_owned_research_run,
     get_run_comparison,
     list_run_evidence,
+    require_research_run_resumable,
+    require_research_run_startable,
 )
 from app.research.stream_runner import stream_research_run
 
@@ -91,12 +93,35 @@ def stream_research_run_route(
     settings: SettingsDependency,
 ) -> StreamingResponse:
     research_run = get_owned_research_run(session, current_user.id, run_id)
+    require_research_run_startable(research_run)
     return StreamingResponse(
         stream_research_run(
             research_run.id,
             current_user.id,
             research_run.conversation_id,
             settings,
+        ),
+        media_type="text/event-stream",
+        headers=SSE_HEADERS,
+    )
+
+
+@router.post("/research-runs/{run_id}/resume", response_model=None, status_code=200)
+def resume_research_run_route(
+    run_id: UUID,
+    current_user: CurrentUser,
+    session: SessionDependency,
+    settings: SettingsDependency,
+) -> StreamingResponse:
+    research_run = get_owned_research_run(session, current_user.id, run_id)
+    require_research_run_resumable(research_run)
+    return StreamingResponse(
+        stream_research_run(
+            research_run.id,
+            current_user.id,
+            research_run.conversation_id,
+            settings,
+            resume=True,
         ),
         media_type="text/event-stream",
         headers=SSE_HEADERS,
