@@ -1,11 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
-import { AlertTriangle, BookmarkPlus, ExternalLink, Play } from "lucide-react";
+import { AlertTriangle, BookmarkPlus, Play } from "lucide-react";
 
 import { apiRequest } from "../api/client";
 import { DossierReport } from "../components/dossier-report";
 import type { ResearchRunArtifact } from "../research/artifact-types";
-import type { CompanySummary, TrackedCompanySummary } from "../research/types";
+import type {
+  CompanySummary,
+  TrackedCompanySummary,
+  WorkspaceSummary,
+} from "../research/types";
 import { postResearchStream } from "../streaming/research-stream";
 
 export function CompanyDetailPage(): React.JSX.Element {
@@ -14,6 +18,15 @@ export function CompanyDetailPage(): React.JSX.Element {
   const company = useQuery({
     queryKey: ["company", companyId],
     queryFn: () => apiRequest<CompanySummary>(`/companies/${companyId}`),
+  });
+  const workspaceId = company.data?.workspace_id;
+  const workspace = useQuery({
+    queryKey: ["workspace", workspaceId],
+    queryFn: () => {
+      if (!workspaceId) throw new Error("Workspace is unavailable");
+      return apiRequest<WorkspaceSummary>(`/workspaces/${workspaceId}`);
+    },
+    enabled: Boolean(workspaceId),
   });
   const latestRun = useQuery({
     queryKey: ["company-latest-run", companyId],
@@ -53,71 +66,68 @@ export function CompanyDetailPage(): React.JSX.Element {
     },
   });
 
+  if (company.isPending) {
+    return (
+      <output className="mx-auto block max-w-6xl text-sm text-ink-secondary">
+        Loading company…
+      </output>
+    );
+  }
+
+  if (company.isError) {
+    return (
+      <p role="alert" className="mx-auto max-w-6xl text-sm text-red-800">
+        {company.error.message}
+      </p>
+    );
+  }
+
   return (
-    <section className="max-w-6xl">
+    <section className="mx-auto max-w-6xl">
       {company.data ? (
         <Link
           to="/workspaces/$workspaceId"
           params={{ workspaceId: company.data.workspace_id }}
-          className="text-sm text-[var(--teal)] underline"
+          className="text-link text-sm"
         >
           Back to workspace
         </Link>
       ) : null}
       <div className="mt-5 flex flex-col justify-between gap-6 md:flex-row md:items-start">
         <div>
-          <p className="text-sm font-semibold text-[var(--teal)]">
-            {company.data?.industry ?? "Industry not yet sourced"}
-          </p>
-          <h1 className="mt-2 font-display text-5xl text-[var(--navy)]">
+          {company.data.industry ? (
+            <p className="eyebrow">{company.data.industry}</p>
+          ) : null}
+          <h1 className="page-title mt-2">
             {company.data?.display_name ?? "Company"}
           </h1>
-          <p className="mt-4 max-w-2xl text-lg text-[var(--muted)]">
-            {company.data?.description ??
-              "Run research to build this canonical profile."}
-          </p>
+          {company.data.description ? (
+            <p className="mt-3 max-w-[68ch] text-ink-secondary">
+              {company.data.description}
+            </p>
+          ) : null}
         </div>
         <button
           type="button"
           onClick={() => track.mutate()}
-          disabled={track.isPending}
-          className="inline-flex min-h-11 items-center gap-2 border border-[var(--navy)] px-4 font-semibold text-[var(--navy)]"
+          disabled={track.isPending || track.isSuccess}
+          className="button-secondary shrink-0 self-start"
         >
-          <BookmarkPlus aria-hidden="true" size={18} /> Track company
+          <BookmarkPlus aria-hidden="true" size={18} />{" "}
+          {track.isSuccess
+            ? "Company tracked"
+            : track.isPending
+              ? "Tracking…"
+              : "Track company"}
         </button>
       </div>
-      <dl className="mt-10 grid border-y border-[var(--line)] md:grid-cols-3">
-        <div className="py-5 md:border-r md:border-[var(--line)] md:px-5">
-          <dt className="text-sm text-[var(--muted)]">Domain</dt>
-          <dd className="mt-1 font-medium">
-            {company.data?.domain ?? "Unavailable"}
-          </dd>
-        </div>
-        <div className="py-5 md:border-r md:border-[var(--line)] md:px-5">
-          <dt className="text-sm text-[var(--muted)]">Headquarters</dt>
-          <dd className="mt-1 font-medium">
-            {company.data?.headquarters ?? "Unavailable"}
-          </dd>
-        </div>
-        <div className="py-5 md:px-5">
-          <dt className="text-sm text-[var(--muted)]">Research status</dt>
-          <dd className="mt-1 font-medium">
-            {company.data?.research_status.replaceAll("_", " ")}
-          </dd>
-        </div>
-      </dl>
-      {company.data?.website ? (
-        <a
-          href={company.data.website}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-6 inline-flex items-center gap-2 text-sm text-[var(--teal)] underline"
-        >
-          Visit official website <ExternalLink aria-hidden="true" size={15} />
-        </a>
+      {track.error ? (
+        <p role="alert" className="mt-3 text-sm text-red-800">
+          {track.error.message}
+        </p>
       ) : null}
       {latestRun.data?.status === "paused" ? (
-        <div className="mt-8 flex items-start justify-between gap-6 border border-amber-300 bg-amber-50 p-5 text-amber-950">
+        <div className="mt-8 flex flex-col items-start justify-between gap-5 rounded-xl border border-amber-300 bg-amber-50 p-5 text-amber-950 shadow-quiet sm:flex-row">
           <div className="flex gap-3">
             <AlertTriangle
               className="mt-0.5 shrink-0"
@@ -145,7 +155,7 @@ export function CompanyDetailPage(): React.JSX.Element {
               if (latestRun.data) resumeRun.mutate(latestRun.data.id);
             }}
             disabled={resumeRun.isPending}
-            className="inline-flex min-h-11 shrink-0 items-center gap-2 bg-[var(--navy)] px-4 font-semibold text-white disabled:opacity-50"
+            className="button-primary shrink-0"
           >
             <Play aria-hidden="true" size={17} />
             {resumeRun.isPending ? "Resuming…" : "Resume research"}
@@ -153,30 +163,25 @@ export function CompanyDetailPage(): React.JSX.Element {
         </div>
       ) : null}
       {latestRun.data?.final_report ? (
-        <div className="mt-12 border-t border-[var(--line)] pt-8">
-          <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <p className="text-sm font-semibold text-[var(--teal)]">
-                Latest completed run
-              </p>
-              <h2 className="mt-1 font-display text-3xl">
-                Decision-ready dossier
-              </h2>
-            </div>
-            {latestRun.data.comparison_id ? (
+        <div className="mt-12 border-t border-hairline pt-8">
+          {latestRun.data.comparison_id ? (
+            <div className="mb-4 flex justify-end">
               <Link
                 to="/comparisons/$comparisonId"
                 params={{ comparisonId: latestRun.data.comparison_id }}
-                className="text-sm text-[var(--teal)] underline"
+                className="text-link text-sm"
               >
-                Open full comparison
+                Open comparison view
               </Link>
-            ) : null}
-          </div>
+            </div>
+          ) : null}
           <DossierReport
             markdown={latestRun.data.final_report}
             evidence={latestRun.data.evidence}
             conversationId={latestRun.data.conversation_id}
+            coverageScore={latestRun.data.coverage_score}
+            confidenceScore={latestRun.data.confidence_score}
+            label={workspace.data?.name ?? company.data.display_name}
           />
         </div>
       ) : null}

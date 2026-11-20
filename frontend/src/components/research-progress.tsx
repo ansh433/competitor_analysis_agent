@@ -1,4 +1,4 @@
-import { Check, CircleDashed, Database, Search, Wrench } from "lucide-react";
+import { Check, CircleDashed } from "lucide-react";
 
 import type { EvidenceArtifact } from "../research/artifact-types";
 import { ComparisonMatrixView } from "./comparison-matrix";
@@ -43,26 +43,28 @@ export function ResearchProgress({
   isPaused,
 }: ResearchProgressProps): React.JSX.Element {
   return (
-    <section
-      aria-live="polite"
-      className="mt-10 grid gap-6 lg:grid-cols-[20rem_1fr]"
-    >
-      <div className="space-y-6">
-        <div className="border border-[var(--line)] bg-white p-5">
-          <h2 className="flex items-center gap-2 font-display text-xl">
-            <Search aria-hidden="true" size={19} /> Research stages
-          </h2>
-          <ol className="mt-4 space-y-3">
+    <section className="mt-10 min-w-0 space-y-6">
+      <details className="surface-card px-5 py-4" open={!isFinished}>
+        <summary className="cursor-pointer text-sm font-medium">
+          Research activity
+        </summary>
+        <div className="mt-5 grid gap-6 md:grid-cols-2">
+          <ol aria-label="Research stages" className="space-y-3">
             {stages.map((stage) => (
               <li
                 key={`${stage.name}-${stage.status}`}
                 className="flex gap-3 text-sm"
               >
                 {stage.status === "complete" ? (
-                  <Check className="mt-0.5 text-emerald-700" size={17} />
+                  <Check
+                    aria-hidden="true"
+                    className="mt-0.5 shrink-0 text-teal"
+                    size={17}
+                  />
                 ) : (
                   <CircleDashed
-                    className="mt-0.5 animate-spin text-[var(--teal)]"
+                    aria-hidden="true"
+                    className="mt-0.5 shrink-0 motion-safe:animate-spin text-teal"
                     size={17}
                   />
                 )}
@@ -75,12 +77,7 @@ export function ResearchProgress({
               </li>
             ))}
           </ol>
-        </div>
-        <div className="border border-[var(--line)] bg-white p-5">
-          <h2 className="flex items-center gap-2 font-display text-xl">
-            <Wrench aria-hidden="true" size={19} /> Tool timeline
-          </h2>
-          <ul className="mt-4 space-y-3 text-sm">
+          <ul aria-label="Tool timeline" className="space-y-3 text-sm">
             {tools.length === 0 ? (
               <li className="text-[var(--muted)]">No tools started yet.</li>
             ) : (
@@ -90,46 +87,48 @@ export function ResearchProgress({
                   className="flex justify-between gap-3"
                 >
                   <span>{tool.name.replaceAll("_", " ")}</span>
-                  <span className="text-[var(--muted)]">
+                  <span className="shrink-0 font-mono text-xs text-ink-muted">
                     {tool.status === "active"
                       ? "Running"
-                      : `${tool.executionTimeMs ?? 0} ms`}
+                      : tool.status === "failed"
+                        ? "Failed"
+                        : `${tool.executionTimeMs ?? 0} ms`}
                   </span>
                 </li>
               ))
             )}
           </ul>
         </div>
-      </div>
-      <div className="min-w-0 border border-[var(--line)] bg-white">
-        <div className="flex items-center justify-between border-b border-[var(--line)] px-6 py-4">
-          <h2 className="font-display text-2xl">Live research notes</h2>
-          <span className="text-sm text-[var(--muted)]">
+      </details>
+      <div className="surface-card min-w-0 overflow-hidden">
+        <div className="flex items-center justify-between border-b border-hairline px-5 py-4">
+          <h2 className="font-serif text-xl">Research output</h2>
+          <output className="font-mono text-xs text-ink-muted">
             {isPaused ? "Paused" : isFinished ? "Complete" : "In progress"}
-          </span>
+          </output>
         </div>
-        <div className="min-h-64 p-6 leading-7">
+        <div className="min-h-64 p-5 leading-7 sm:p-6">
           {streamedText ? (
             <DossierReport
               markdown={streamedText}
               evidence={evidence}
               conversationId={conversationId ?? undefined}
+              label="Live report"
             />
           ) : (
             "The first verified findings will appear here."
           )}
         </div>
-        <div className="border-t border-[var(--line)] bg-stone-50 px-6 py-4">
-          <p className="flex items-center gap-2 text-sm font-medium">
-            <Database aria-hidden="true" size={16} /> {sources.length} sources
-            collected · {evidence.length} accepted evidence records ·{" "}
+        <div className="border-t border-hairline bg-subtle/45 px-5 py-4">
+          <p className="font-mono text-xs text-ink-secondary">
+            {sources.length} sources · {evidence.length} evidence records ·{" "}
             {gaps.length} open gaps
           </p>
         </div>
       </div>
       {comparison ? (
-        <div className="lg:col-span-2">
-          <h2 className="mb-4 font-display text-3xl text-[var(--navy)]">
+        <div className="min-w-0">
+          <h2 className="mb-4 font-serif text-2xl text-ink">
             Comparison artifact
           </h2>
           <ComparisonMatrixView comparison={comparison} />

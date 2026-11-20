@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, ArrowRight, Gauge } from "lucide-react";
+import { AlertTriangle, ArrowRight } from "lucide-react";
 import { type FormEvent, useState } from "react";
 
 import { apiRequest } from "../api/client";
@@ -14,6 +14,10 @@ import type {
   EvidenceArtifact,
   ResearchRunArtifact,
 } from "../research/artifact-types";
+import {
+  clearResearchCompanyPrefill,
+  getResearchCompanyPrefill,
+} from "../research/prefill";
 import type { WorkspaceSummary } from "../research/types";
 import { postResearchStream } from "../streaming/research-stream";
 
@@ -60,7 +64,6 @@ export function ResearchStartPage(): React.JSX.Element {
   const [research, setResearch] =
     useState<ResearchViewState>(initialResearchState);
   const [isRunning, setIsRunning] = useState(false);
-  const standard = quota.data?.tiers.find((tier) => tier.tier === "standard");
   const isDisabled = !quota.isLoading && !quota.data?.can_start_research;
 
   async function handleStartResearch(
@@ -72,6 +75,7 @@ export function ResearchStartPage(): React.JSX.Element {
     const data = new FormData(event.currentTarget);
     const company = String(data.get("company") ?? "");
     const objective = String(data.get("objective") ?? "");
+    clearResearchCompanyPrefill();
     try {
       const researchRun = await apiRequest<ResearchRunArtifact>(
         "/research-runs",
@@ -134,135 +138,111 @@ export function ResearchStartPage(): React.JSX.Element {
   }
 
   return (
-    <section className="mx-auto max-w-6xl">
-      <div className="grid gap-10 lg:grid-cols-[1fr_20rem]">
-        <div>
-          <p className="mb-3 text-sm font-semibold text-[var(--teal)]">
-            New intelligence brief
-          </p>
-          <h1 className="max-w-3xl font-display text-4xl leading-tight text-[var(--navy)] md:text-6xl">
-            Begin with a company. End with an evidence ledger.
-          </h1>
-          <p className="mt-5 max-w-2xl text-lg leading-8 text-[var(--muted)]">
-            Define the decision you need to make. Compass resolves the company,
-            discovers alternatives, and shows the source behind every material
-            claim.
-          </p>
+    <section className="mx-auto max-w-5xl">
+      <header>
+        <h1 className="page-title">Start research</h1>
+        <p className="mt-3 max-w-xl text-sm leading-6 text-ink-secondary">
+          Define the company and the decision to investigate.
+        </p>
+      </header>
 
-          {isDisabled ? (
-            <div
-              role="alert"
-              className="mt-8 flex gap-3 border border-amber-300 bg-amber-50 p-4 text-amber-950"
-            >
-              <AlertTriangle
-                className="mt-0.5 shrink-0"
-                aria-hidden="true"
-                size={20}
-              />
-              Daily research allowance exhausted. Existing dossiers remain
-              available until the quota resets.
-            </div>
-          ) : null}
+      {isDisabled ? (
+        <div
+          role="alert"
+          className="mt-6 flex gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm leading-6 text-amber-950 shadow-quiet"
+        >
+          <AlertTriangle
+            className="mt-0.5 shrink-0"
+            aria-hidden="true"
+            size={20}
+          />
+          Daily research allowance exhausted. Existing dossiers remain available
+          until the quota resets.
+        </div>
+      ) : null}
 
+      <div className="mt-8">
+        <div className="min-w-0">
           <form
             onSubmit={handleStartResearch}
-            className="mt-10 space-y-6 border border-[var(--line)] bg-white p-6 md:p-8"
+            aria-label="Research brief"
+            className="surface-card space-y-6 p-5 sm:p-7"
           >
-            <label className="block text-sm font-semibold">
-              Workspace
-              <select
-                name="workspaceId"
-                required
-                className="form-input"
-                disabled={isDisabled}
-              >
-                <option value="">Select a workspace</option>
-                {workspaces.data?.workspaces.map((workspace) => (
-                  <option key={workspace.id} value={workspace.id}>
-                    {workspace.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block text-sm font-semibold">
+            <div className="grid gap-5 sm:grid-cols-2">
+              <label className="block min-w-0 text-sm font-medium">
+                Workspace
+                <select
+                  name="workspaceId"
+                  required
+                  className="form-input"
+                  disabled={isDisabled}
+                >
+                  <option value="">Select a workspace</option>
+                  {workspaces.data?.workspaces.map((workspace) => (
+                    <option key={workspace.id} value={workspace.id}>
+                      {workspace.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block min-w-0 text-sm font-medium">
+                Model tier
+                <select
+                  name="modelTier"
+                  className="form-input"
+                  disabled={isDisabled}
+                >
+                  <option value="standard">Standard research</option>
+                  <option value="upgraded">Upgraded model</option>
+                </select>
+              </label>
+            </div>
+            <label className="block text-sm font-medium">
               Company name or website
               <input
                 name="company"
                 required
                 className="form-input"
+                defaultValue={getResearchCompanyPrefill()}
                 placeholder="Example: Linear or linear.app"
                 disabled={isDisabled}
               />
             </label>
-            <label className="block text-sm font-semibold">
-              Model tier
-              <select
-                name="modelTier"
-                className="form-input"
-                disabled={isDisabled}
-              >
-                <option value="standard">Standard research</option>
-                <option value="upgraded">Upgraded model</option>
-              </select>
-            </label>
-            <label className="block text-sm font-semibold">
+            <label className="block text-sm font-medium">
               Research objective
               <textarea
                 name="objective"
                 required
                 className="form-input min-h-36 resize-y"
-                placeholder="Assess product differentiation, pricing, and direct competitors for a market-entry decision."
+                placeholder="Assess differentiation and pricing for a market-entry decision."
                 disabled={isDisabled}
               />
             </label>
-            <button
-              type="submit"
-              disabled={isDisabled || quota.isLoading || isRunning}
-              className="inline-flex min-h-12 items-center gap-2 bg-[var(--navy)] px-5 font-semibold text-white hover:bg-[var(--navy-light)] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isRunning ? "Researching…" : "Begin research"}{" "}
-              <ArrowRight aria-hidden="true" size={18} />
-            </button>
+            <div className="border-t border-hairline pt-6">
+              <button
+                type="submit"
+                disabled={isDisabled || quota.isLoading || isRunning}
+                className="button-primary min-h-12 w-full px-5 sm:w-auto"
+              >
+                {isRunning ? "Researching…" : "Begin research"}{" "}
+                <ArrowRight aria-hidden="true" size={18} />
+              </button>
+            </div>
           </form>
         </div>
-
-        <aside
-          aria-label="Research allowance"
-          className="h-fit border-t-4 border-[var(--signal)] bg-[var(--navy)] p-6 text-white lg:mt-24"
-        >
-          <Gauge aria-hidden="true" className="text-[var(--signal)]" />
-          <h2 className="mt-4 font-display text-2xl">Today’s allowance</h2>
-          <p className="mt-3 text-sm leading-6 text-teal-50/75">
-            Standard runs remaining
-          </p>
-          <p className="mt-1 font-display text-5xl">
-            {quota.isLoading
-              ? "—"
-              : standard?.bypassed
-                ? "∞"
-                : (standard?.remaining ?? 0)}
-          </p>
-          <dl className="mt-6 space-y-3 border-t border-white/15 pt-5 text-sm">
-            <div className="flex justify-between gap-4">
-              <dt className="text-teal-50/65">Source ceiling</dt>
-              <dd>{quota.data?.maximum_sources_per_run ?? "—"}</dd>
-            </div>
-            <div className="flex justify-between gap-4">
-              <dt className="text-teal-50/65">Gap loops</dt>
-              <dd>{quota.data?.maximum_gap_research_loops ?? "—"}</dd>
-            </div>
-          </dl>
-        </aside>
       </div>
       {research.error ? (
-        <div role="alert" className="mt-6 bg-amber-50 p-4 text-amber-950">
+        <div
+          role="alert"
+          className="mt-6 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950 shadow-quiet"
+        >
           <p>{research.error}</p>
           {research.isPaused ? (
             <button
               type="button"
               onClick={() => void handleResumeResearch()}
               disabled={isRunning}
-              className="mt-4 min-h-11 bg-[var(--navy)] px-5 font-semibold text-white disabled:opacity-50"
+              className="button-primary mt-4"
             >
               {isRunning ? "Resuming…" : "Resume research"}
             </button>
