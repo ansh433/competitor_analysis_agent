@@ -19,7 +19,9 @@ RUN uv sync --frozen --no-dev --project backend --no-install-project
 COPY backend backend
 RUN uv sync --frozen --no-dev --project backend
 COPY --from=frontend-build /workspace/frontend/dist backend/app/static
+COPY scripts/render-start.sh /workspace/render-start.sh
+RUN chmod +x /workspace/render-start.sh
 WORKDIR /workspace/backend
 EXPOSE 8000
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["/workspace/render-start.sh"]
 

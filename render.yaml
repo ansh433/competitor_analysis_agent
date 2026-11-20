@@ -1,0 +1,46 @@
+services:
+  - type: web
+    name: compass
+    runtime: docker
+    plan: free
+    region: singapore
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: PROVIDER_MODE
+        value: live
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: compass-db
+          property: connectionString
+      - key: FRONTEND_HOST
+        value: https://compass.anshv.xyz
+      - key: BACKEND_CORS_ORIGINS
+        value: '["https://compass.anshv.xyz"]'
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY_2
+        sync: false
+      - key: GEMINI_API_KEY_3
+        sync: false
+      - key: GEMINI_API_KEY_4
+        sync: false
+      - key: TAVILY_API_KEY
+        sync: false
+      - key: INITIAL_SUPERUSER_EMAIL
+        sync: false
+      - key: INITIAL_SUPERUSER_PASSWORD
+        sync: false
+
+databases:
+  - name: compass-db
+    plan: free
+    region: singapore
+    databaseName: compass
+    user: compass
